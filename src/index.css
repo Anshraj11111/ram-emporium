@@ -470,9 +470,7 @@ input, select, textarea {
 
 /* ── Mobile form stack ───────────────────────── */
 @media (max-width: 639px) {
-  .grid.grid-cols-2 { grid-template-columns: 1fr !important; }
-  .grid.grid-cols-3 { grid-template-columns: 1fr !important; }
-  .grid.sm\\:grid-cols-2 { grid-template-columns: 1fr; }
+  .mobile-stack-cols { grid-template-columns: 1fr !important; }
 }
 
 /* ── iOS input styling ───────────────────────── */

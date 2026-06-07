@@ -3,7 +3,7 @@ import { dashboardAPI } from '../services'
 import { fmt } from '../lib/utils'
 import {
   TrendingUp, ShoppingCart, Package,
-  AlertTriangle, Receipt, ArrowUpRight, Clock
+  AlertTriangle, Receipt, Clock
 } from 'lucide-react'
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -15,19 +15,19 @@ import { Link } from 'react-router-dom'
 
 const StatCard = ({ icon: Icon, label, value, sub, color, delay }) => (
   <div className={`stat-card animate-fadeInUp stagger-${delay}`}>
-    <div className="flex items-start justify-between">
-      <div>
-        <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-2">{label}</p>
-        <p className="text-2xl font-display font-bold text-slate-100">{value}</p>
+    <div className="flex items-start justify-between gap-2">
+      <div className="flex-1 min-w-0">
+        <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1.5">{label}</p>
+        <p className="text-xl sm:text-2xl font-display font-bold text-slate-100 truncate">{value}</p>
         {sub && <p className="text-xs text-slate-500 mt-1">{sub}</p>}
       </div>
-      <div className={`w-11 h-11 rounded-2xl flex items-center justify-center ${color}`}>
-        <Icon size={20} className="text-white" />
+      <div className={`w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0 ${color}`}>
+        <Icon size={18} className="text-white" />
       </div>
     </div>
-    <div className="mt-4 flex items-center gap-1 text-xs text-emerald-400">
-      <ArrowUpRight size={12} />
-      <span>Live data</span>
+    <div className="mt-3 flex items-center gap-1 text-xs text-emerald-400">
+      <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+      <span>Live</span>
     </div>
   </div>
 )
@@ -98,8 +98,7 @@ export default function Dashboard() {
       </div>
 
       {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Area Chart */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">        {/* Area Chart */}
         <div className="lg:col-span-2 glass rounded-2xl p-6 animate-fadeInUp stagger-3">
           <div className="flex items-center justify-between mb-6">
             <div>
@@ -159,8 +158,7 @@ export default function Dashboard() {
       </div>
 
       {/* Bottom row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Recent Bills */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">        {/* Recent Bills */}
         <div className="glass rounded-2xl p-6 animate-fadeInUp stagger-5">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-display font-semibold text-slate-200">Recent Bills</h3>

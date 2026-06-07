@@ -81,10 +81,10 @@ export default function Settings() {
   }
 
   return (
-    <div className="space-y-6 animate-fadeIn max-w-3xl">
+    <div className="space-y-5 animate-fadeIn max-w-3xl">
       <div>
         <h1 className="page-title gradient-text">Settings</h1>
-        <p className="text-slate-500 text-sm mt-1">Configure your shop details for bills and quotations</p>
+        <p className="text-slate-500 text-xs mt-0.5">Shop details for bills and quotations</p>
       </div>
 
       <form onSubmit={handleSubmit(saveMut.mutate)} className="space-y-6">

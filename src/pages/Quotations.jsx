@@ -429,33 +429,83 @@ export default function Quotations() {
     <div className="space-y-6 animate-fadeIn">
 
       {/* ── Header ── */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3">
         <div>
           <h1 className="page-title gradient-text">Quotations</h1>
-          <p className="text-slate-500 text-sm mt-1">{pagination?.total || 0} total quotations</p>
+          <p className="text-slate-500 text-xs mt-0.5">{pagination?.total || 0} total quotations</p>
         </div>
-        <Button onClick={() => setShowCreate(true)}>
-          <Plus size={16} /><span>New Quotation</span>
+        <Button onClick={() => setShowCreate(true)} size="sm">
+          <Plus size={15} /><span>New</span>
         </Button>
       </div>
 
       {/* ── Filters ── */}
-      <div className="glass rounded-2xl p-4 flex flex-wrap gap-3">
-        <div className="flex-1 min-w-48">
+      <div className="glass rounded-2xl p-3 flex gap-2">
+        <div className="flex-1">
           <SearchInput value={search}
             onChange={v => { setSearch(v); setPage(1) }}
             placeholder="Search quotation no, customer…" />
         </div>
-        <select className="glass-input rounded-xl px-3 py-2.5 text-sm min-w-36"
+        <select className="glass-input rounded-xl px-3 py-2 text-sm flex-shrink-0"
+          style={{ minWidth: 0, maxWidth: 130 }}
           value={status} onChange={e => { setStatus(e.target.value); setPage(1) }}>
-          <option value="">All Status</option>
+          <option value="">All</option>
           {statusList.map(s => (
-            <option key={s} value={s}>{s.replace(/_/g,' ')}</option>
+            <option key={s} value={s}>{s === 'CONVERTED_TO_BILL' ? 'Converted' : s}</option>
           ))}
         </select>
       </div>
 
-      {/* ── Table ── */}
+      {/* ── Table (desktop) / Cards (mobile) ── */}
+      {window.innerWidth < 768 ? (
+        <div className="space-y-3">
+          {isLoading ? (
+            [...Array(3)].map((_, i) => (
+              <div key={i} className="glass rounded-2xl p-4 space-y-3">
+                <div className="skeleton h-4 w-1/2 rounded" />
+                <div className="skeleton h-5 w-3/4 rounded" />
+              </div>
+            ))
+          ) : quotations.length === 0 ? (
+            <div className="glass rounded-2xl p-12 text-center">
+              <FileText size={32} className="mx-auto mb-3 text-slate-700" />
+              <p className="text-slate-500">No quotations found</p>
+            </div>
+          ) : quotations.map(q => (
+            <div key={q._id} className="glass rounded-2xl p-4">
+              <div className="flex items-start justify-between gap-2 mb-3">
+                <div className="min-w-0 flex-1">
+                  <code className="text-xs text-brand-400 bg-brand-500/10 px-2 py-0.5 rounded">{q.quotationNo}</code>
+                  <p className="text-sm font-semibold text-slate-200 mt-1.5">
+                    {q.customerSnapshot?.name || 'Walk-in'}
+                  </p>
+                  <p className="text-xs text-slate-500">{fmt.date(q.createdAt)}</p>
+                </div>
+                <div className="text-right flex-shrink-0">
+                  <p className="text-base font-bold text-slate-100">{fmt.currency(q.grandTotal)}</p>
+                  <Badge status={q.status} />
+                </div>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="number-pill text-xs">{q.items?.length || 0} items</span>
+                <div className="flex gap-1.5">
+                  <button className="btn-icon w-8 h-8" onClick={() => setViewItem(q)}><Eye size={13} /></button>
+                  {q.status !== 'CONVERTED_TO_BILL' && (
+                    <button className="btn-icon w-8 h-8" onClick={() => setEditItem(q)}><Edit2 size={13} /></button>
+                  )}
+                  <button className="btn-icon w-8 h-8" onClick={() => pdfMut.mutate(q._id)}><FileDown size={13} /></button>
+                  {q.status !== 'CONVERTED_TO_BILL' && (
+                    <button className="btn-icon w-8 h-8 text-emerald-500" onClick={() => setConvertId(q._id)}>
+                      <ArrowRightLeft size={13} />
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+          <Pagination meta={pagination} onPageChange={setPage} />
+        </div>
+      ) : (
       <div className="glass rounded-2xl overflow-hidden">
         <Table>
           <thead>
@@ -474,86 +524,37 @@ export default function Quotations() {
             <tbody>
               {quotations.map(q => (
                 <tr key={q._id}>
-                  <Td>
-                    <code className="text-brand-400 text-xs bg-brand-500/10 px-2 py-0.5 rounded">
-                      {q.quotationNo}
-                    </code>
-                  </Td>
-                  <Td>
-                    <span className="text-slate-300">
-                      {q.customerSnapshot?.name || 'Walk-in'}
-                    </span>
-                  </Td>
-                  <Td>
-                    <span className="number-pill">{q.items?.length || 0}</span>
-                  </Td>
-                  <Td className="text-right font-semibold text-slate-100">
-                    {fmt.currency(q.grandTotal)}
-                  </Td>
+                  <Td><code className="text-brand-400 text-xs bg-brand-500/10 px-2 py-0.5 rounded">{q.quotationNo}</code></Td>
+                  <Td><span className="text-slate-300">{q.customerSnapshot?.name || 'Walk-in'}</span></Td>
+                  <Td><span className="number-pill">{q.items?.length || 0}</span></Td>
+                  <Td className="text-right font-semibold text-slate-100">{fmt.currency(q.grandTotal)}</Td>
                   <Td><Badge status={q.status} /></Td>
-                  <Td>
-                    <span className="text-slate-500 text-xs">{fmt.date(q.createdAt)}</span>
-                  </Td>
+                  <Td><span className="text-slate-500 text-xs">{fmt.date(q.createdAt)}</span></Td>
                   <Td>
                     <div className="flex items-center justify-end gap-1.5">
-
-                      {/* View */}
-                      <button className="btn-icon" onClick={() => setViewItem(q)}
-                        data-tooltip="View">
-                        <Eye size={13} />
-                      </button>
-
-                      {/* Edit — disabled if converted */}
-                      <button
-                        className={`btn-icon ${q.status === 'CONVERTED_TO_BILL' ? 'opacity-30 cursor-not-allowed' : 'hover:text-brand-400'}`}
-                        onClick={() => q.status !== 'CONVERTED_TO_BILL' && setEditItem(q)}
-                        data-tooltip="Edit">
-                        <Edit2 size={13} />
-                      </button>
-
-                      {/* Duplicate */}
-                      <button className="btn-icon" onClick={() => dupMut.mutate(q._id)}
-                        data-tooltip="Duplicate">
-                        <Copy size={13} />
-                      </button>
-
-                      {/* Download PDF */}
-                      <button
-                        className={`btn-icon ${pdfMut.isPending ? 'opacity-50' : ''}`}
-                        onClick={() => pdfMut.mutate(q._id)}
-                        data-tooltip="Download PDF">
-                        <FileDown size={13} />
-                      </button>
-
-                      {/* Convert to Bill — only if not already converted */}
+                      <button className="btn-icon" onClick={() => setViewItem(q)} data-tooltip="View"><Eye size={13} /></button>
+                      <button className={`btn-icon ${q.status === 'CONVERTED_TO_BILL' ? 'opacity-30 cursor-not-allowed' : ''}`} onClick={() => q.status !== 'CONVERTED_TO_BILL' && setEditItem(q)} data-tooltip="Edit"><Edit2 size={13} /></button>
+                      <button className="btn-icon" onClick={() => dupMut.mutate(q._id)} data-tooltip="Duplicate"><Copy size={13} /></button>
+                      <button className="btn-icon" onClick={() => pdfMut.mutate(q._id)} data-tooltip="PDF"><FileDown size={13} /></button>
                       {q.status !== 'CONVERTED_TO_BILL' && (
-                        <button
-                          className="btn-icon text-emerald-500 hover:text-emerald-300 hover:border-emerald-500/40"
-                          onClick={() => setConvertId(q._id)}
-                          data-tooltip="Convert to Bill">
-                          <ArrowRightLeft size={13} />
-                        </button>
+                        <button className="btn-icon text-emerald-500 hover:text-emerald-300" onClick={() => setConvertId(q._id)} data-tooltip="Convert"><ArrowRightLeft size={13} /></button>
                       )}
                     </div>
                   </Td>
                 </tr>
               ))}
-
               {quotations.length === 0 && (
-                <tr>
-                  <td colSpan={7} className="text-center py-14">
-                    <FileText size={36} className="mx-auto mb-3 text-slate-700" />
-                    <p className="text-slate-500 font-medium">No quotations found</p>
-                  </td>
-                </tr>
+                <tr><td colSpan={7} className="text-center py-14">
+                  <FileText size={36} className="mx-auto mb-3 text-slate-700" />
+                  <p className="text-slate-500 font-medium">No quotations found</p>
+                </td></tr>
               )}
             </tbody>
           )}
         </Table>
-        <div className="px-6 py-4">
-          <Pagination meta={pagination} onPageChange={setPage} />
-        </div>
+        <div className="px-4 py-3"><Pagination meta={pagination} onPageChange={setPage} /></div>
       </div>
+      )} {/* end desktop */}
 
       {/* ── Create Modal ── */}
       <Modal open={showCreate} onClose={() => setShowCreate(false)}
