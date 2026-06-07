@@ -23,7 +23,11 @@ import ProductSearchInput from '../components/billing/ProductSearchInput'
 // ── Quotation Form (Create + Edit) ───────────────
 function QuotationForm({ onSubmit, defaultValues, loading }) {
   const { register, control, handleSubmit, watch } = useForm({
-    defaultValues: defaultValues || { items: [], overallDiscount: 0 },
+    defaultValues: defaultValues || {
+      items: [], overallDiscount: 0,
+      customerName: '', customerMobile: '', customerAddress: '', customerGst: '',
+      validUntil: '',
+    },
   })
   const { fields, append, remove } = useFieldArray({ control, name: 'items' })
 
@@ -58,11 +62,53 @@ function QuotationForm({ onSubmit, defaultValues, loading }) {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-      {/* Customer info */}
-      <div className="grid grid-cols-2 gap-4">
-        <Input label="Customer Name (optional)" placeholder="Ramesh Traders"
-          {...register('customerName')} />
-        <Input label="Valid Until" type="date" {...register('validUntil')} />
+      {/* ── Customer Details ── */}
+      <div className="glass-dark rounded-2xl p-4 space-y-3">
+        <div className="flex items-center gap-2 mb-1">
+          <div className="w-6 h-6 rounded-lg bg-brand-500/20 flex items-center justify-center">
+            <span className="text-brand-400 text-xs">👤</span>
+          </div>
+          <p className="text-sm font-semibold text-slate-300">Customer Details</p>
+          <span className="text-xs text-slate-600">(optional)</span>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div className="relative">
+            <input
+              className="glass-input w-full rounded-xl px-4 py-2.5 text-sm"
+              placeholder="Customer Name"
+              {...register('customerName')}
+            />
+          </div>
+          <div className="relative">
+            <input
+              className="glass-input w-full rounded-xl px-4 py-2.5 text-sm"
+              placeholder="Mobile Number"
+              maxLength={10}
+              {...register('customerMobile')}
+            />
+          </div>
+        </div>
+
+        <input
+          className="glass-input w-full rounded-xl px-4 py-2.5 text-sm"
+          placeholder="Address (optional)"
+          {...register('customerAddress')}
+        />
+
+        <div className="grid grid-cols-2 gap-3">
+          <input
+            className="glass-input w-full rounded-xl px-4 py-2.5 text-sm uppercase"
+            placeholder="GST Number (optional)"
+            maxLength={15}
+            {...register('customerGst')}
+          />
+          <input
+            type="date"
+            className="glass-input w-full rounded-xl px-4 py-2.5 text-sm"
+            {...register('validUntil')}
+          />
+        </div>
       </div>
 
       {/* Product search */}
@@ -299,6 +345,10 @@ export default function Quotations() {
   // ── Helpers ───────────────────────────────────
   const handleCreate = (formData) => {
     const payload = {
+      customerName:    formData.customerName    || undefined,
+      customerMobile:  formData.customerMobile  || undefined,
+      customerAddress: formData.customerAddress || undefined,
+      customerGst:     formData.customerGst     || undefined,
       items: formData.items.map(i => ({
         productId:          i.productId,
         productName:        i.productName,
@@ -316,6 +366,10 @@ export default function Quotations() {
 
   const handleUpdate = (formData) => {
     const payload = {
+      customerName:    formData.customerName    || undefined,
+      customerMobile:  formData.customerMobile  || undefined,
+      customerAddress: formData.customerAddress || undefined,
+      customerGst:     formData.customerGst     || undefined,
       items: formData.items.map(i => ({
         productId:          i.productId,
         productName:        i.productName,
@@ -331,13 +385,17 @@ export default function Quotations() {
     updateMut.mutate({ id: editItem._id, data: payload })
   }
 
-  // Build default values for edit form
   const buildEditDefaults = (q) => {
     if (!q) return null
+    const snap = q.customerSnapshot || {}
     return {
       _id:             q._id,
+      customerName:    snap.name      || '',
+      customerMobile:  snap.mobile    || '',
+      customerAddress: snap.address   || '',
+      customerGst:     snap.gstNumber || '',
       overallDiscount: q.overallDiscount || 0,
-      notes:           q.notes || '',
+      notes:           q.notes    || '',
       validUntil:      q.validUntil ? q.validUntil.split('T')[0] : '',
       items: (q.items || []).map(i => ({
         productId:          i.productId?._id || i.productId,
@@ -533,6 +591,12 @@ export default function Quotations() {
                 </p>
                 {viewItem.customerSnapshot?.mobile && (
                   <p className="text-xs text-slate-400">📞 {viewItem.customerSnapshot.mobile}</p>
+                )}
+                {viewItem.customerSnapshot?.gstNumber && (
+                  <p className="text-xs text-emerald-400">GST: {viewItem.customerSnapshot.gstNumber}</p>
+                )}
+                {viewItem.customerSnapshot?.address && (
+                  <p className="text-xs text-slate-500">📍 {viewItem.customerSnapshot.address}</p>
                 )}
               </div>
             </div>

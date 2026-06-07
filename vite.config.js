@@ -5,9 +5,7 @@ import path from 'path'
 export default defineConfig({
   plugins: [react()],
   resolve: {
-    alias: {
-      '@': path.resolve(__dirname, './src'),
-    },
+    alias: { '@': path.resolve(__dirname, './src') },
   },
   server: {
     port: 3000,
@@ -17,5 +15,9 @@ export default defineConfig({
         changeOrigin: true,
       },
     },
+  },
+  define: {
+    // Makes VITE_API_URL available at build time
+    __API_URL__: JSON.stringify(process.env.VITE_API_URL || ''),
   },
 })
