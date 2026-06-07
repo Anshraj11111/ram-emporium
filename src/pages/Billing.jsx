@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { billsAPI } from '../services'
+import { billsAPI, settingsAPI } from '../services'
 import { fmt, calcItemAmounts, calcBillTotals, gstRates, paymentModes } from '../lib/utils'
-import { Plus, Eye, FileDown, Receipt, Trash2, User, Phone, MapPin, Hash } from 'lucide-react'
+import { Plus, Eye, FileDown, Receipt, Trash2, User, Phone, MapPin, Hash, QrCode } from 'lucide-react'
 import { useForm, useFieldArray } from 'react-hook-form'
 import toast from 'react-hot-toast'
 import Button from '../components/ui/Button'
@@ -15,6 +15,7 @@ import Pagination from '../components/ui/Pagination'
 import { Table, Th, Td } from '../components/ui/Table'
 import { TableSkeleton } from '../components/ui/Skeleton'
 import ProductSearchInput from '../components/billing/ProductSearchInput'
+import UpiQR from '../components/ui/UpiQR'
 
 // ── Bill Creation Form ────────────────────────────────────────────────────
 function BillForm({ onSubmit, loading }) {
@@ -473,6 +474,12 @@ export default function Billing() {
     enabled:  !!viewId,
   })
 
+  // Shop settings for UPI QR
+  const { data: shopSettings } = useQuery({
+    queryKey: ['settings'],
+    queryFn:  () => settingsAPI.get().then(r => r.data.data),
+  })
+
   // Create bill
   const createMut = useMutation({
     mutationFn: billsAPI.create,
@@ -487,11 +494,23 @@ export default function Billing() {
 
   // PDF
   const pdfMut = useMutation({
-    mutationFn: billsAPI.generatePDF,
-    onSuccess:  (res) => {
-      window.open(res.data.data.pdfUrl, '_blank')
-      toast.success('PDF generated')
+    mutationFn: async (id) => {
+      const token = localStorage.getItem('accessToken')
+      const res = await fetch(
+        `${import.meta.env.VITE_API_URL || '/api/v1'}/bills/${id}/generate-pdf`,
+        { method: 'POST', headers: { Authorization: `Bearer ${token}` } }
+      )
+      if (!res.ok) throw new Error('PDF generation failed')
+      const blob = await res.blob()
+      const url  = URL.createObjectURL(blob)
+      const a    = document.createElement('a')
+      a.href     = url
+      a.download = `bill-${id}.pdf`
+      a.click()
+      URL.revokeObjectURL(url)
     },
+    onSuccess: () => toast.success('PDF downloaded'),
+    onError:   () => toast.error('PDF generation failed'),
   })
 
   const bills      = data?.data          || []
@@ -661,8 +680,51 @@ export default function Billing() {
         {billDetail && (
           <>
             <BillView bill={billDetail} />
+
+            {/* UPI QR Code for payment */}
+            {shopSettings?.upiId && billDetail.dueAmount > 0 && (
+              <div className="mt-4 p-4 glass-dark rounded-2xl">
+                <div className="flex items-center gap-2 mb-4">
+                  <QrCode size={16} className="text-brand-400" />
+                  <p className="text-sm font-semibold text-slate-300">Pay via UPI</p>
+                  <span className="badge badge-warning text-xs">
+                    Due: {fmt.currency(billDetail.dueAmount)}
+                  </span>
+                </div>
+                <div className="flex justify-center">
+                  <UpiQR
+                    upiId={shopSettings.upiId}
+                    name={shopSettings.shopName}
+                    amount={billDetail.dueAmount}
+                    note={`Payment for ${billDetail.billNo}`}
+                    size={160}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Show static QR (no amount) if fully paid */}
+            {shopSettings?.upiId && !billDetail.dueAmount && (
+              <div className="mt-4 p-4 glass-dark rounded-2xl">
+                <div className="flex items-center gap-2 mb-4">
+                  <QrCode size={16} className="text-emerald-400" />
+                  <p className="text-sm font-semibold text-slate-300">UPI Payment QR</p>
+                  <span className="badge badge-active text-xs">Fully Paid</span>
+                </div>
+                <div className="flex justify-center">
+                  <UpiQR
+                    upiId={shopSettings.upiId}
+                    name={shopSettings.shopName}
+                    amount={billDetail.grandTotal}
+                    note={`Payment for ${billDetail.billNo}`}
+                    size={140}
+                  />
+                </div>
+              </div>
+            )}
+
             <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-white/5">
-              <Button variant="secondary" onClick={() => pdfMut.mutate(viewId)}>
+              <Button variant="secondary" onClick={() => pdfMut.mutate(viewId)} loading={pdfMut.isPending}>
                 <FileDown size={15} />
                 <span>Download PDF</span>
               </Button>

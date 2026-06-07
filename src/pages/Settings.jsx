@@ -7,7 +7,8 @@ import { useEffect, useRef } from 'react'
 import toast from 'react-hot-toast'
 import Button from '../components/ui/Button'
 import Input from '../components/ui/Input'
-import { Store, Upload, Building2, FileText, CreditCard } from 'lucide-react'
+import { Store, Upload, Building2, FileText, CreditCard, QrCode } from 'lucide-react'
+import UpiQR from '../components/ui/UpiQR'
 
 const schema = z.object({
   shopName:        z.string().min(1, 'Shop name is required'),
@@ -161,6 +162,26 @@ export default function Settings() {
             <Input label="IFSC Code" placeholder="SBIN0001234" {...register('bankIfsc')} />
             <Input label="UPI ID" placeholder="ramemporium@upi" {...register('upiId')} />
           </div>
+
+          {/* Live UPI QR Preview */}
+          {settings?.upiId && (
+            <div className="mt-6 p-4 glass-dark rounded-2xl">
+              <div className="flex items-center gap-2 mb-4">
+                <QrCode size={16} className="text-brand-400" />
+                <p className="text-sm font-semibold text-slate-300">Your UPI QR Code</p>
+                <span className="text-xs text-slate-500">(customers scan this to pay)</span>
+              </div>
+              <div className="flex justify-center">
+                <UpiQR
+                  upiId={settings.upiId}
+                  name={settings.shopName}
+                  amount={0}
+                  note="Payment to RAM EMPORIUM"
+                  size={160}
+                />
+              </div>
+            </div>
+          )}
         </Section>
 
         {/* Save button */}
