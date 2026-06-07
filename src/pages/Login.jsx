@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useNavigate } from 'react-router-dom'
-import { Eye, EyeOff, Lock, Mail, Zap } from 'lucide-react'
+import { Eye, EyeOff, Lock, Mail, ArrowLeft } from 'lucide-react'
 import toast from 'react-hot-toast'
 import useAuthStore from '../store/authStore'
 import Input from '../components/ui/Input'
@@ -34,7 +34,8 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen bg-animated flex items-center justify-center p-4 relative overflow-hidden">
+    <div className="min-h-screen bg-animated flex items-center justify-center p-4 relative overflow-hidden"
+      style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
       {/* Orbs */}
       <div className="orb orb-1" />
       <div className="orb orb-2" />
@@ -45,20 +46,11 @@ export default function Login() {
         style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)', backgroundSize: '50px 50px' }} />
 
       <div className="w-full max-w-md relative z-10 animate-fadeInUp">
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-brand-500 to-purple-600 shadow-2xl mb-4 animate-pulse-glow">
-            <Zap size={28} className="text-white" />
-          </div>
-          <h1 className="font-display text-3xl font-bold gradient-text">RAM EMPORIUM</h1>
-          <p className="text-slate-500 text-sm mt-1">Billing & Inventory Management</p>
-        </div>
-
         {/* Card */}
         <div className="glass rounded-3xl p-8 shadow-2xl border border-white/8">
-          <div className="mb-6">
-            <h2 className="text-xl font-display font-semibold text-slate-100">Welcome back</h2>
-            <p className="text-slate-500 text-sm mt-1">Sign in to your account</p>
+          <div className="mb-6 text-center">
+            <h1 className="font-display text-2xl font-bold gradient-text mb-1">RAM EMPORIUM</h1>
+            <p className="text-slate-500 text-sm">Sign in to your account</p>
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -106,11 +98,6 @@ export default function Login() {
               <span>Sign In</span>
             </Button>
           </form>
-
-          {/* Demo credentials */}
-          <div className="mt-6 p-3 rounded-xl glass-dark border border-white/5 text-center">
-            <p className="text-xs text-slate-500">Demo: <span className="text-slate-400">admin@ramemporium.com</span> / <span className="text-slate-400">Admin@12345</span></p>
-          </div>
         </div>
       </div>
     </div>

@@ -361,3 +361,128 @@ select.glass-input { color-scheme: dark; appearance: none; }
   body { background:white; color:black; }
   .glass { background:white; border:1px solid #ddd; }
 }
+
+/* ═══════════════════════════════════════════════
+   RESPONSIVE & iOS ADDITIONS
+   ═══════════════════════════════════════════════ */
+
+/* ── iOS Safe Area ───────────────────────────── */
+@supports (padding: env(safe-area-inset-bottom)) {
+  .ios-safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+  .ios-safe-top    { padding-top:    env(safe-area-inset-top);    }
+}
+
+/* ── Slide-up animation (mobile modals) ──────── */
+@keyframes slideUp {
+  from { transform: translateY(100%); opacity: 0.5; }
+  to   { transform: translateY(0);    opacity: 1;   }
+}
+
+/* ── Touch optimisations ─────────────────────── */
+button, a, [role="button"] {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+input, select, textarea {
+  font-size: 16px !important; /* prevent iOS auto-zoom */
+}
+
+/* ── Mobile table: horizontal scroll ─────────── */
+@media (max-width: 767px) {
+  .overflow-x-auto { -webkit-overflow-scrolling: touch; }
+
+  /* Page title smaller on mobile */
+  .page-title { font-size: 22px !important; }
+
+  /* Stat cards single column */
+  .stat-card { padding: 16px; }
+
+  /* Glass cards less padding */
+  .glass.rounded-2xl { border-radius: 16px; }
+
+  /* Modal full width on mobile — handled in JSX */
+
+  /* Buttons full width in forms */
+  .btn-primary.w-full,
+  .btn-secondary.w-full { justify-content: center; }
+
+  /* Table font size */
+  .glass-table td,
+  .glass-table th { padding: 10px 12px; font-size: 12px; }
+
+  /* Hide non-essential table columns on mobile */
+  .hide-mobile { display: none !important; }
+
+  /* Dropdown position fix for mobile */
+  .dropdown-menu {
+    position: fixed !important;
+    top: auto !important;
+    bottom: calc(72px + env(safe-area-inset-bottom)) !important;
+    right: 12px !important;
+    left:  12px !important;
+    max-width: 100% !important;
+  }
+
+  /* Sidebar badge */
+  .sidebar-badge { display: none; }
+
+  /* Charts height on mobile */
+  .recharts-responsive-container { min-height: 180px; }
+}
+
+/* ── Tablet ──────────────────────────────────── */
+@media (min-width: 640px) and (max-width: 1023px) {
+  .page-title { font-size: 24px; }
+}
+
+/* ── Desktop only ────────────────────────────── */
+@media (min-width: 1024px) {
+  /* restore dropdown position */
+  .dropdown-menu {
+    position: absolute !important;
+    top: calc(100% + 8px) !important;
+    bottom: auto !important;
+    right: 0 !important;
+    left: auto !important;
+  }
+}
+
+/* ── Scrollable containers on iOS ────────────── */
+.overflow-y-auto,
+.overflow-x-auto {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* ── Mobile: taller tap targets ──────────────── */
+@media (max-width: 767px) {
+  .sidebar-link { padding: 13px 14px; min-height: 48px; }
+  .btn-icon     { min-width: 44px; min-height: 44px; }
+  .dropdown-item { min-height: 48px; }
+  .glass-table td { min-height: 48px; }
+}
+
+/* ── Prevent content behind bottom nav on mobile ─ */
+@media (max-width: 767px) {
+  main { padding-bottom: calc(72px + env(safe-area-inset-bottom)) !important; }
+}
+
+/* ── Mobile form stack ───────────────────────── */
+@media (max-width: 639px) {
+  .grid.grid-cols-2 { grid-template-columns: 1fr !important; }
+  .grid.grid-cols-3 { grid-template-columns: 1fr !important; }
+  .grid.sm\\:grid-cols-2 { grid-template-columns: 1fr; }
+}
+
+/* ── iOS input styling ───────────────────────── */
+input[type="date"],
+input[type="time"] {
+  -webkit-appearance: none;
+  appearance: none;
+  min-height: 44px;
+}
+
+/* ── Prevent double-tap zoom on buttons ─────── */
+* { touch-action: manipulation; }
+img, video { touch-action: pan-x pan-y; }

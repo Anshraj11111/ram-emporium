@@ -61,7 +61,7 @@ export default function Dashboard() {
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {[...Array(3)].map((_, i) => (
             <div key={i} className="stat-card">
               <Skeleton className="h-4 w-24 mb-3" />
@@ -91,7 +91,7 @@ export default function Dashboard() {
       </div>
 
       {/* Stats row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <StatCard icon={TrendingUp}   label="Today's Sales"    value={fmt.currency(d.totalSalesToday)}     sub={`${d.totalBillsToday || 0} bills`}     color="bg-gradient-to-br from-brand-500 to-purple-600"  delay={1} />
         <StatCard icon={ShoppingCart} label="This Month"       value={fmt.currency(d.totalSalesThisMonth)} sub={`${d.totalBillsThisMonth || 0} bills`}  color="bg-gradient-to-br from-cyan-500 to-blue-600"     delay={2} />
         <StatCard icon={Package}      label="Total Products"   value={fmt.number(d.totalProducts)}         sub="Active products"                        color="bg-gradient-to-br from-emerald-500 to-teal-600"  delay={3} />
