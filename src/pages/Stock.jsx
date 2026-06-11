@@ -11,21 +11,74 @@ import Modal from '../components/ui/Modal'
 import Pagination from '../components/ui/Pagination'
 import { Table, Th, Td } from '../components/ui/Table'
 import SearchInput from '../components/ui/SearchInput'
+import ProductSearchInput from '../components/billing/ProductSearchInput'
 
 const txIcon  = { PURCHASE: TrendingUp, SALE: TrendingDown, ADJUSTMENT: Minus }
 const txColor = { PURCHASE: 'text-emerald-400', SALE: 'text-rose-400', ADJUSTMENT: 'text-amber-400' }
 
 function StockForm({ type, onSubmit, loading }) {
-  const { register, handleSubmit } = useForm()
+  const { register, handleSubmit, setValue, watch } = useForm()
+  const [selectedProduct, setSelectedProduct] = useState(null)
+
+  const handleProductSelect = (product) => {
+    setSelectedProduct(product)
+    setValue('productId', product._id)
+  }
+
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-      <Input label="Product ID" placeholder="Paste product _id" {...register('productId', { required: true })} />
+
+      {/* Product Search */}
+      <div>
+        <label className="form-label">Select Product *</label>
+        {selectedProduct ? (
+          <div className="flex items-center justify-between glass-dark rounded-xl px-4 py-3">
+            <div>
+              <p className="text-sm font-semibold text-slate-200">{selectedProduct.name}</p>
+              <p className="text-xs text-slate-500">
+                {selectedProduct.sku} · Current Stock: <span className="text-emerald-400 font-bold">{selectedProduct.stockQty} {selectedProduct.unit}</span>
+              </p>
+            </div>
+            <button
+              type="button"
+              className="text-xs text-slate-500 hover:text-rose-400 transition-colors ml-3"
+              onClick={() => { setSelectedProduct(null); setValue('productId', '') }}
+            >
+              Change
+            </button>
+          </div>
+        ) : (
+          <ProductSearchInput onSelect={handleProductSelect} excludeIds={[]} />
+        )}
+        <input type="hidden" {...register('productId', { required: true })} />
+      </div>
+
+      {/* Quantity */}
+      <div>
+        <label className="form-label">
+          {type === 'adjust' ? 'Set New Stock Quantity *' : 'Quantity to Add *'}
+        </label>
+        <input
+          type="number"
+          min={type === 'adjust' ? 0 : 1}
+          placeholder={type === 'adjust' ? 'Enter new total quantity' : 'How many units received?'}
+          className="glass-input w-full rounded-xl px-4 py-3 text-sm"
+          {...register('quantity', { required: true, valueAsNumber: true, min: type === 'adjust' ? 0 : 1 })}
+        />
+        {type === 'adjust' && (
+          <p className="text-xs text-slate-500 mt-1">
+            This sets the stock to the exact number you enter (e.g. after physical count)
+          </p>
+        )}
+      </div>
+
+      {/* Remarks */}
       <Input
-        label={type === 'adjust' ? 'New Stock Quantity' : 'Quantity to Add'}
-        type="number" min={type === 'adjust' ? 0 : 1}
-        {...register('quantity', { required: true, valueAsNumber: true })}
+        label="Remarks (optional)"
+        placeholder={type === 'adjust' ? 'e.g. Physical stock count' : 'e.g. Received from supplier'}
+        {...register('remarks')}
       />
-      <Input label="Remarks (optional)" placeholder="e.g. Received from supplier" {...register('remarks')} />
+
       <div className="flex justify-end">
         <Button type="submit" loading={loading}>
           <span>{type === 'adjust' ? 'Adjust Stock' : 'Record Purchase'}</span>
