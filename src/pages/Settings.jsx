@@ -7,7 +7,7 @@ import { useEffect, useRef } from 'react'
 import toast from 'react-hot-toast'
 import Button from '../components/ui/Button'
 import Input from '../components/ui/Input'
-import { Store, Upload, Building2, FileText, CreditCard, QrCode } from 'lucide-react'
+import { Store, Upload, FileText, CreditCard, QrCode, PenLine } from 'lucide-react'
 import UpiQR from '../components/ui/UpiQR'
 
 const schema = z.object({
@@ -46,7 +46,8 @@ function Section({ icon: Icon, title, children }) {
 
 export default function Settings() {
   const qc = useQueryClient()
-  const fileRef = useRef()
+  const fileRef      = useRef()
+  const signatureRef = useRef()
 
   const { data: settings, isLoading } = useQuery({
     queryKey: ['settings'],
@@ -70,6 +71,11 @@ export default function Settings() {
   const logoMut = useMutation({
     mutationFn: (file) => settingsAPI.uploadLogo(file),
     onSuccess: () => { qc.invalidateQueries(['settings']); toast.success('Logo uploaded') },
+  })
+
+  const signatureMut = useMutation({
+    mutationFn: (file) => settingsAPI.uploadSignature(file),
+    onSuccess: () => { qc.invalidateQueries(['settings']); toast.success('Signature uploaded — will appear on PDF bills') },
   })
 
   if (isLoading) {
@@ -179,6 +185,85 @@ export default function Settings() {
                   note="Payment to RAM EMPORIUM"
                   size={160}
                 />
+              </div>
+            </div>
+          )}
+        </Section>
+
+        {/* Signature */}
+        <Section icon={PenLine} title="Authorised Signature">
+          <p className="text-xs text-slate-500 mb-4">
+            Upload your signature image — it will appear on all PDF bills and quotations above the "Authorised Signatory" line.
+          </p>
+
+          <div className="flex items-start gap-6">
+            {/* Preview */}
+            <div className="flex-shrink-0">
+              {settings?.signatureUrl ? (
+                <div className="relative">
+                  <div className="w-52 h-20 rounded-xl border border-white/10 bg-white flex items-center justify-center overflow-hidden">
+                    <img
+                      src={settings.signatureUrl}
+                      alt="Signature"
+                      className="max-w-full max-h-full object-contain p-2"
+                    />
+                  </div>
+                  <p className="text-xs text-emerald-400 mt-1.5 text-center">✓ Signature saved</p>
+                </div>
+              ) : (
+                <div className="w-52 h-20 rounded-xl border-2 border-dashed border-white/15 flex flex-col items-center justify-center text-slate-600 bg-white/3">
+                  <PenLine size={20} className="mb-1 opacity-40" />
+                  <p className="text-xs">No signature yet</p>
+                </div>
+              )}
+            </div>
+
+            {/* Upload */}
+            <div className="flex-1">
+              <input
+                type="file"
+                ref={signatureRef}
+                className="hidden"
+                accept="image/png,image/jpeg,image/jpg,image/webp"
+                onChange={e => e.target.files[0] && signatureMut.mutate(e.target.files[0])}
+              />
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => signatureRef.current?.click()}
+                loading={signatureMut.isPending}
+              >
+                <Upload size={14} />
+                <span>{settings?.signatureUrl ? 'Replace Signature' : 'Upload Signature'}</span>
+              </Button>
+              <div className="mt-3 space-y-1 text-xs text-slate-500">
+                <p>• PNG, JPG or WebP — max 2MB</p>
+                <p>• Use a white/transparent background for best results</p>
+                <p>• Recommended size: 400×150 px or wider</p>
+                <p>• Will appear on all future PDF downloads</p>
+              </div>
+            </div>
+          </div>
+
+          {/* PDF preview mockup */}
+          {settings?.signatureUrl && (
+            <div className="mt-5 p-4 glass-dark rounded-2xl border border-white/5">
+              <p className="text-xs text-slate-500 mb-3 flex items-center gap-1.5">
+                <span className="inline-block w-2 h-2 rounded-full bg-brand-500" />
+                Preview — how it appears on PDF
+              </p>
+              <div className="bg-white rounded-xl p-4 flex flex-col items-end">
+                <img
+                  src={settings.signatureUrl}
+                  alt="Signature preview"
+                  className="max-h-14 object-contain mb-1"
+                  style={{ maxWidth: 200 }}
+                />
+                <div className="w-52 border-t border-slate-300 pt-1 text-center">
+                  <p className="text-xs text-slate-500">Authorised Signatory</p>
+                  <p className="text-xs text-slate-400 font-medium">{settings.shopName || 'RAM EMPORIUM'}</p>
+                </div>
               </div>
             </div>
           )}

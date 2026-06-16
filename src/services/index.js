@@ -97,6 +97,11 @@ export const settingsAPI = {
     fd.append('logo', file)
     return api.post('/settings/logo', fd, { headers: { 'Content-Type': 'multipart/form-data' } })
   },
+  uploadSignature: (file) => {
+    const fd = new FormData()
+    fd.append('signature', file)
+    return api.post('/settings/signature', fd, { headers: { 'Content-Type': 'multipart/form-data' } })
+  },
 }
 
 // ── Notifications ─────────────────────────────────
