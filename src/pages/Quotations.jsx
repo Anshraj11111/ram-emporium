@@ -499,6 +499,9 @@ export default function Quotations() {
                       <ArrowRightLeft size={13} />
                     </button>
                   )}
+                  <button className="btn-icon w-8 h-8 hover:text-rose-400" onClick={() => setDeleteId(q._id)}>
+                    <Trash2 size={13} />
+                  </button>
                 </div>
               </div>
             </div>
@@ -539,6 +542,13 @@ export default function Quotations() {
                       {q.status !== 'CONVERTED_TO_BILL' && (
                         <button className="btn-icon text-emerald-500 hover:text-emerald-300" onClick={() => setConvertId(q._id)} data-tooltip="Convert"><ArrowRightLeft size={13} /></button>
                       )}
+                      <button
+                        className="btn-icon hover:text-rose-400 hover:border-rose-500/30"
+                        onClick={() => setDeleteId(q._id)}
+                        data-tooltip="Delete"
+                      >
+                        <Trash2 size={13} />
+                      </button>
                     </div>
                   </Td>
                 </tr>

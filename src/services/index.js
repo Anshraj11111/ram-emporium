@@ -74,6 +74,7 @@ export const billsAPI = {
   create:           (d)      => api.post('/bills', d),
   convertQuotation: (qId, d) => api.post(`/bills/convert/${qId}`, d),
   generatePDF:      (id)     => api.post(`/bills/${id}/generate-pdf`),
+  delete:           (id)     => api.delete(`/bills/${id}`),
 }
 
 // ── Reports ───────────────────────────────────────

@@ -16,6 +16,7 @@ import { Table, Th, Td } from '../components/ui/Table'
 import { TableSkeleton } from '../components/ui/Skeleton'
 import ProductSearchInput from '../components/billing/ProductSearchInput'
 import UpiQR from '../components/ui/UpiQR'
+import ConfirmDialog from '../components/ui/ConfirmDialog'
 
 // ── Bill Form ──────────────────────────────────────
 function BillForm({ onSubmit, loading }) {
@@ -283,7 +284,7 @@ function BillView({ bill, shopSettings }) {
 }
 
 // ── Bill Card (mobile list) ───────────────────────
-function BillCard({ bill, onView, onPdf }) {
+function BillCard({ bill, onView, onPdf, onDelete }) {
   return (
     <div className="glass rounded-2xl p-4">
       <div className="flex items-start justify-between gap-2 mb-3">
@@ -311,6 +312,7 @@ function BillCard({ bill, onView, onPdf }) {
         <div className="flex gap-1.5">
           <button className="btn-icon w-8 h-8" onClick={() => onView(bill._id)}><Eye size={13} /></button>
           <button className="btn-icon w-8 h-8" onClick={() => onPdf(bill._id)}><FileDown size={13} /></button>
+          <button className="btn-icon w-8 h-8 hover:text-rose-400" onClick={() => onDelete(bill._id)}><Trash2 size={13} /></button>
         </div>
       </div>
       <p className="text-xs text-slate-600 mt-2">{fmt.date(bill.createdAt)}</p>
@@ -326,6 +328,7 @@ export default function Billing() {
   const [typeFilter, setTypeFilter] = useState('')
   const [showCreate, setShowCreate] = useState(false)
   const [viewId, setViewId]         = useState(null)
+  const [deleteId, setDeleteId]     = useState(null)
   const isMobile = window.innerWidth < 768
 
   const { data, isLoading } = useQuery({
@@ -348,6 +351,16 @@ export default function Billing() {
   const createMut = useMutation({
     mutationFn: billsAPI.create,
     onSuccess: () => { qc.invalidateQueries(['bills']); qc.invalidateQueries(['products']); qc.invalidateQueries(['dashboard']); setShowCreate(false); toast.success('Bill created!') },
+  })
+
+  const deleteMut = useMutation({
+    mutationFn: billsAPI.delete,
+    onSuccess: () => {
+      qc.invalidateQueries(['bills'])
+      qc.invalidateQueries(['dashboard'])
+      setDeleteId(null)
+      toast.success('Bill deleted')
+    },
   })
 
   const pdfMut = useMutation({
@@ -416,7 +429,7 @@ export default function Billing() {
             ? [...Array(3)].map((_, i) => <div key={i} className="glass rounded-2xl p-4 space-y-3"><div className="skeleton h-5 w-3/4 rounded" /><div className="skeleton h-4 w-1/2 rounded" /></div>)
             : bills.length === 0
             ? <div className="glass rounded-2xl p-12 text-center"><Receipt size={32} className="mx-auto mb-3 text-slate-700" /><p className="text-slate-500">No bills yet</p></div>
-            : bills.map(b => <BillCard key={b._id} bill={b} onView={setViewId} onPdf={(id) => pdfMut.mutate(id)} />)}
+            : bills.map(b => <BillCard key={b._id} bill={b} onView={setViewId} onPdf={(id) => pdfMut.mutate(id)} onDelete={setDeleteId} />)}
         </div>
       ) : (
         <div className="glass rounded-2xl overflow-hidden">
@@ -442,6 +455,7 @@ export default function Billing() {
                       <div className="flex justify-end gap-1.5">
                         <button className="btn-icon" onClick={() => setViewId(b._id)}><Eye size={13} /></button>
                         <button className="btn-icon" onClick={() => pdfMut.mutate(b._id)}><FileDown size={13} /></button>
+                        <button className="btn-icon hover:text-rose-400" onClick={() => setDeleteId(b._id)}><Trash2 size={13} /></button>
                       </div>
                     </Td>
                   </tr>
@@ -476,6 +490,18 @@ export default function Billing() {
           </>
         )}
       </Modal>
+
+      {/* Delete Bill Confirm */}
+      <ConfirmDialog
+        open={!!deleteId}
+        onClose={() => setDeleteId(null)}
+        onConfirm={() => deleteMut.mutate(deleteId)}
+        loading={deleteMut.isPending}
+        title="Delete Bill"
+        message="Are you sure you want to delete this bill? Stock will NOT be restored automatically. This action cannot be undone."
+        confirmLabel="Delete Bill"
+        danger
+      />
     </div>
   )
 }
