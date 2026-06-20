@@ -8,14 +8,15 @@ import useAuthStore from '../../store/authStore'
 import toast from 'react-hot-toast'
 
 const navItems = [
-  { to: '/dashboard',    icon: LayoutDashboard, label: 'Dashboard'      },
-  { to: '/products',     icon: Package,         label: 'Products'       },
-  { to: '/stock',        icon: Warehouse,        label: 'Stock'          },
-  { to: '/quotations',   icon: FileText,         label: 'Quotations'    },
-  { to: '/billing',      icon: Receipt,          label: 'Billing'        },
-  { to: '/reports',      icon: BarChart2,        label: 'Reports'        },
-  { to: '/notifications',icon: Bell,             label: 'Notifications'  },
-  { to: '/settings',     icon: Settings,         label: 'Settings'       },
+  { to: '/dashboard',     icon: LayoutDashboard, label: 'Dashboard'    },
+  { to: '/products',      icon: Package,         label: 'Products'     },
+  { to: '/stock',         icon: Warehouse,        label: 'Stock'        },
+  { to: '/quotations',    icon: FileText,         label: 'Quotations'  },
+  { to: '/billing',       icon: Receipt,          label: 'Billing'      },
+  { to: '/custom-billing',icon: FileText,         label: 'Custom Bill' },
+  { to: '/reports',       icon: BarChart2,        label: 'Reports'      },
+  { to: '/notifications', icon: Bell,             label: 'Notifications'},
+  { to: '/settings',      icon: Settings,         label: 'Settings'     },
 ]
 
 const adminNav = [

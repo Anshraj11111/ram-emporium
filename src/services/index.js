@@ -115,7 +115,14 @@ export const notificationsAPI = {
   markAllRead: ()       => api.patch('/notifications/read-all'),
 }
 
-// ── Users ─────────────────────────────────────────
+// ── Custom Bills (no stock connection) ───────────
+export const customBillsAPI = {
+  list:        (params) => api.get('/custom-bills', { params: clean(params) }),
+  getById:     (id)     => api.get(`/custom-bills/${id}`),
+  create:      (d)      => api.post('/custom-bills', d),
+  delete:      (id)     => api.delete(`/custom-bills/${id}`),
+  generatePDF: (id)     => api.post(`/custom-bills/${id}/generate-pdf`),
+}
 export const usersAPI = {
   list:       (params) => api.get('/users', { params: clean(params) }),
   getById:    (id)     => api.get(`/users/${id}`),
