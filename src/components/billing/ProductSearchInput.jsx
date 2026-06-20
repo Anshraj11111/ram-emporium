@@ -134,6 +134,7 @@ export default function ProductSearchInput({ onSelect, excludeIds = [] }) {
                   <div className="text-right ml-4 flex-shrink-0">
                     <p className="text-sm font-bold text-slate-100">
                       {fmt.currency(p.sellingPrice)}
+                      {p.priceUnit && <span className="text-xs text-slate-400 ml-1">{p.priceUnit}</span>}
                     </p>
                     <p className="text-xs text-slate-500">GST {p.gstRate}%</p>
                   </div>

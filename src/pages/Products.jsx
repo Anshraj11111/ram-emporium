@@ -20,12 +20,13 @@ import ConfirmDialog from '../components/ui/ConfirmDialog'
 import EmptyState from '../components/ui/EmptyState'
 
 const schema = z.object({
-  sku:           z.string().min(1).toUpperCase(),
-  name:          z.string().min(1),
+  sku:           z.string().trim().max(50).toUpperCase().optional().or(z.literal('').transform(() => undefined)),
+  name:          z.string().min(1, 'Product name is required'),
   category:      z.string().optional(),
   unit:          z.string().optional(),
   purchasePrice: z.coerce.number().min(0).optional(),
-  sellingPrice:  z.coerce.number().min(0),
+  sellingPrice:  z.coerce.number().min(0, 'Selling price required'),
+  priceUnit:     z.string().optional(),
   gstRate:       z.coerce.number(),
   stockQty:      z.coerce.number().min(0).optional(),
   minStockLevel: z.coerce.number().min(0).optional(),
@@ -34,42 +35,138 @@ const schema = z.object({
   barcode:       z.string().optional(),
 })
 
+const PRICE_UNITS = [
+  'per piece', 'per meter', 'per sqft', 'per sqmt',
+  'per kg', 'per gram', 'per liter', 'per box',
+  'per dozen', 'per bundle', 'per roll', 'per bag', 'per ton',
+]
+
+const UNITS = ['PCS','MTR','KG','GM','LTR','BOX','DOZ','SQF','SQM','ROLL','BAG','TON','BUNDLE','SET']
+
 function ProductForm({ onSubmit, defaultValues, loading }) {
-  const { register, handleSubmit, formState: { errors } } = useForm({
+  const { register, handleSubmit, watch, formState: { errors } } = useForm({
     resolver: zodResolver(schema),
-    defaultValues: defaultValues || { gstRate: 18, unit: 'PCS', stockQty: 0, minStockLevel: 5 },
+    defaultValues: defaultValues || {
+      gstRate: 18, unit: 'PCS', stockQty: 0, minStockLevel: 5, priceUnit: '',
+    },
   })
+
+  const purchasePrice = watch('purchasePrice')
+  const sellingPrice  = watch('sellingPrice')
+  const priceUnit     = watch('priceUnit')
+
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-      <div className="grid grid-cols-2 gap-3">
-        <Input label="SKU *" placeholder="PROD-001" error={errors.sku?.message} {...register('sku')} />
-        <Input label="Name *" placeholder="Product name" error={errors.name?.message} {...register('name')} />
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        <Input label="Category" placeholder="Steel" {...register('category')} />
-        <Input label="Unit" placeholder="PCS/MTR/KG" {...register('unit')} />
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        <Input label="Purchase ₹" type="number" step="0.01" {...register('purchasePrice')} />
-        <Input label="Selling ₹ *" type="number" step="0.01" error={errors.sellingPrice?.message} {...register('sellingPrice')} />
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        <Select label="GST Rate" {...register('gstRate')}>
-          {gstRates.map(r => <option key={r} value={r}>{r}%</option>)}
-        </Select>
-        <Input label="Stock Qty" type="number" {...register('stockQty')} />
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        <Input label="Min Stock" type="number" {...register('minStockLevel')} />
-        <Input label="Location" placeholder="Rack A-3" {...register('location')} />
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        <Input label="HSN Code" {...register('hsn')} />
-        <Input label="Barcode" {...register('barcode')} />
-      </div>
-      <div className="flex justify-end pt-1">
+    <form onSubmit={handleSubmit(onSubmit)}>
+      {/* Scrollable body */}
+      <div className="space-y-4 max-h-[65vh] overflow-y-auto pr-1 pb-2">
+
+        {/* SKU + Name */}
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="form-label">SKU <span className="text-slate-600 font-normal text-xs">(optional)</span></label>
+            <input className="glass-input w-full rounded-xl px-4 py-3 text-sm uppercase" placeholder="e.g. PIPE-01" {...register('sku')} />
+          </div>
+          <Input label="Product Name *" placeholder="e.g. Aluminium Pipe 1 inch" error={errors.name?.message} {...register('name')} />
+        </div>
+
+        {/* Category + Unit */}
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="form-label">Category <span className="text-slate-600 font-normal text-xs">(optional)</span></label>
+            <input className="glass-input w-full rounded-xl px-4 py-3 text-sm" placeholder="e.g. Aluminium, Steel" {...register('category')} />
+          </div>
+          <div>
+            <label className="form-label">Unit of Sale</label>
+            <select className="glass-input w-full rounded-xl px-4 py-3 text-sm" {...register('unit')}>
+              {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
+            </select>
+          </div>
+        </div>
+
+        {/* Price Unit */}
+        <div>
+          <label className="form-label">
+            Price Unit <span className="text-slate-600 font-normal text-xs">(optional — how you charge)</span>
+          </label>
+          <div className="flex gap-2">
+            {/* Quick-select dropdown */}
+            <select
+              className="glass-input rounded-xl px-3 py-2.5 text-sm w-40 flex-shrink-0"
+              onChange={e => {
+                if (e.target.value) {
+                  // Set value in the hidden register field via direct DOM trigger
+                  const input = document.getElementById('priceUnitInput')
+                  if (input) { input.value = e.target.value; input.dispatchEvent(new Event('input', { bubbles: true })) }
+                }
+              }}
+            >
+              <option value="">Quick select…</option>
+              {PRICE_UNITS.map(u => <option key={u} value={u}>{u}</option>)}
+            </select>
+            {/* Free text input */}
+            <input
+              id="priceUnitInput"
+              className="glass-input rounded-xl px-4 py-2.5 text-sm flex-1"
+              placeholder="or type custom: e.g. per sqft, per running ft…"
+              {...register('priceUnit')}
+            />
+          </div>
+          {priceUnit && (
+            <p className="text-xs text-brand-400 mt-1.5">
+              💡 Will show as <strong>₹X {priceUnit}</strong> on bills
+            </p>
+          )}
+        </div>
+
+        {/* Purchase + Selling */}
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="form-label">Purchase Price ₹</label>
+            <input type="number" step="0.01" min="0" placeholder="0.00"
+              className="glass-input w-full rounded-xl px-4 py-3 text-sm"
+              {...register('purchasePrice')} />
+            {purchasePrice > 0 && priceUnit && (
+              <p className="text-xs text-slate-500 mt-1">₹{purchasePrice} {priceUnit}</p>
+            )}
+          </div>
+          <div>
+            <label className="form-label">Selling Price ₹ *</label>
+            <input type="number" step="0.01" min="0" placeholder="0.00"
+              className={`glass-input w-full rounded-xl px-4 py-3 text-sm ${errors.sellingPrice ? 'border-rose-500/60' : ''}`}
+              {...register('sellingPrice')} />
+            {sellingPrice > 0 && priceUnit && (
+              <p className="text-xs text-emerald-400 mt-1">₹{sellingPrice} {priceUnit}</p>
+            )}
+            {errors.sellingPrice && <p className="mt-1 text-xs text-rose-400">{errors.sellingPrice.message}</p>}
+          </div>
+        </div>
+
+        {/* GST + Stock */}
+        <div className="grid grid-cols-2 gap-3">
+          <Select label="GST Rate" {...register('gstRate')}>
+            {gstRates.map(r => <option key={r} value={r}>{r}%</option>)}
+          </Select>
+          <Input label="Opening Stock" type="number" placeholder="0" {...register('stockQty')} />
+        </div>
+
+        {/* Min Stock + Location */}
+        <div className="grid grid-cols-2 gap-3">
+          <Input label="Min Stock Level" type="number" placeholder="5" {...register('minStockLevel')} />
+          <Input label="Location" placeholder="Rack A-3" {...register('location')} />
+        </div>
+
+        {/* HSN + Barcode */}
+        <div className="grid grid-cols-2 gap-3">
+          <Input label="HSN Code" placeholder="7304" {...register('hsn')} />
+          <Input label="Barcode" placeholder="8901234567890" {...register('barcode')} />
+        </div>
+
+      </div>{/* end scroll */}
+
+      {/* Submit — outside scroll, always visible */}
+      <div className="flex justify-end pt-4 border-t border-white/5 mt-2">
         <Button type="submit" loading={loading}>
-          <span>{defaultValues ? 'Update' : 'Create Product'}</span>
+          <span>{defaultValues ? 'Update Product' : 'Create Product'}</span>
         </Button>
       </div>
     </form>
