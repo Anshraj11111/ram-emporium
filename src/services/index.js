@@ -79,14 +79,17 @@ export const billsAPI = {
 
 // ── Reports ───────────────────────────────────────
 export const reportsAPI = {
-  daily:        (params) => api.get('/reports/daily',         { params: clean(params) }),
-  monthly:      (params) => api.get('/reports/monthly',       { params: clean(params) }),
-  yearly:       (params) => api.get('/reports/yearly',        { params: clean(params) }),
-  productWise:  (params) => api.get('/reports/product-wise',  { params: clean(params) }),
-  customerWise: (params) => api.get('/reports/customer-wise', { params: clean(params) }),
-  topSelling:   (params) => api.get('/reports/top-selling',   { params: clean(params) }),
-  lowStock:     ()       => api.get('/reports/low-stock'),
-  profit:       (params) => api.get('/reports/profit',        { params: clean(params) }),
+  daily:              (params) => api.get('/reports/daily',               { params: clean(params) }),
+  monthly:            (params) => api.get('/reports/monthly',             { params: clean(params) }),
+  yearly:             (params) => api.get('/reports/yearly',              { params: clean(params) }),
+  productWise:        (params) => api.get('/reports/product-wise',        { params: clean(params) }),
+  customerWise:       (params) => api.get('/reports/customer-wise',       { params: clean(params) }),
+  topSelling:         (params) => api.get('/reports/top-selling',         { params: clean(params) }),
+  lowStock:           ()       => api.get('/reports/low-stock'),
+  profit:             (params) => api.get('/reports/profit',              { params: clean(params) }),
+  dayWiseProducts:    (params) => api.get('/reports/day-wise-products',   { params: clean(params) }),
+  monthWiseProducts:  (params) => api.get('/reports/month-wise-products', { params: clean(params) }),
+  stockTimeline:      (params) => api.get('/reports/stock-timeline',       { params: clean(params) }),
 }
 
 // ── Settings ──────────────────────────────────────

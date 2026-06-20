@@ -21,15 +21,17 @@ const CustomTooltip = ({ active, payload, label }) => {
     </div>
   )
 }
-
 const TABS = [
-  { id: 'daily',        label: 'Daily'    },
-  { id: 'monthly',      label: 'Monthly'  },
-  { id: 'yearly',       label: 'Yearly'   },
-  { id: 'top-selling',  label: 'Top'      },
-  { id: 'customer-wise',label: 'Customers'},
-  { id: 'low-stock',    label: 'Low Stock'},
-  { id: 'profit',       label: 'Profit'   },
+  { id: 'daily',              label: 'Daily'           },
+  { id: 'monthly',            label: 'Monthly'         },
+  { id: 'yearly',             label: 'Yearly'          },
+  { id: 'day-products',       label: 'Products Today'  },
+  { id: 'month-products',     label: 'Products Monthly'},
+  { id: 'stock-history',      label: 'Stock History'   },
+  { id: 'top-selling',        label: 'Top'             },
+  { id: 'customer-wise',      label: 'Customers'       },
+  { id: 'low-stock',          label: 'Low Stock'       },
+  { id: 'profit',             label: 'Profit'          },
 ]
 
 const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
@@ -49,6 +51,37 @@ export default function Reports() {
   const customerWise= useQuery({ queryKey: ['report-customers', startDate, endDate], queryFn: () => reportsAPI.customerWise({ startDate, endDate }).then(r => r.data.data), enabled: tab === 'customer-wise' })
   const lowStock    = useQuery({ queryKey: ['report-lowstock'],        queryFn: () => reportsAPI.lowStock().then(r => r.data.data),                                 enabled: tab === 'low-stock' })
   const profit      = useQuery({ queryKey: ['report-profit', startDate, endDate], queryFn: () => reportsAPI.profit({ startDate, endDate }).then(r => r.data.data), enabled: tab === 'profit' })
+
+  // ── New: Day-wise & Month-wise product sales ──
+  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split('T')[0])
+
+  const dayProducts = useQuery({
+    queryKey: ['report-day-products', selectedDate],
+    queryFn:  () => reportsAPI.dayWiseProducts({ date: selectedDate }).then(r => r.data.data),
+    enabled:  tab === 'day-products',
+  })
+
+  const monthProducts = useQuery({
+    queryKey: ['report-month-products', year, month],
+    queryFn:  () => reportsAPI.monthWiseProducts({ year, month }).then(r => r.data.data),
+    enabled:  tab === 'month-products',
+  })
+
+  // ── Stock History ──
+  const [historyStart, setHistoryStart] = useState('')
+  const [historyEnd,   setHistoryEnd]   = useState('')
+  const [historyProduct, setHistoryProduct] = useState('')
+  const [expandedProduct, setExpandedProduct] = useState(null)
+
+  const stockHistory = useQuery({
+    queryKey: ['report-stock-history', historyStart, historyEnd, historyProduct],
+    queryFn:  () => reportsAPI.stockTimeline({
+      startDate: historyStart || undefined,
+      endDate:   historyEnd   || undefined,
+      productId: historyProduct || undefined,
+    }).then(r => r.data.data),
+    enabled: tab === 'stock-history',
+  })
 
   const dateRangeTabs = ['top-selling', 'customer-wise', 'profit']
 
@@ -105,12 +138,54 @@ export default function Reports() {
         </div>
       )}
 
-      {tab === 'yearly' && (
-        <div className="glass rounded-2xl p-3">
-          <label className="form-label text-xs">Year</label>
-          <select className="glass-input rounded-xl px-3 py-2 text-sm w-36" value={year} onChange={e => setYear(Number(e.target.value))}>
-            {[2024,2025,2026,2027].map(y => <option key={y} value={y}>{y}</option>)}
-          </select>
+      {(tab === 'yearly' || tab === 'month-products') && (
+        <div className="glass rounded-2xl p-3 flex gap-3">
+          <div>
+            <label className="form-label text-xs">Year</label>
+            <select className="glass-input rounded-xl px-3 py-2 text-sm w-28" value={year} onChange={e => setYear(Number(e.target.value))}>
+              {[2024,2025,2026,2027].map(y => <option key={y} value={y}>{y}</option>)}
+            </select>
+          </div>
+          {tab === 'month-products' && (
+            <div>
+              <label className="form-label text-xs">Month</label>
+              <select className="glass-input rounded-xl px-3 py-2 text-sm w-28" value={month} onChange={e => setMonth(Number(e.target.value))}>
+                {months.map((m, i) => <option key={i} value={i+1}>{m}</option>)}
+              </select>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Stock History filters */}
+      {tab === 'stock-history' && (
+        <div className="glass rounded-2xl p-3 flex flex-wrap gap-3 items-end">
+          <div>
+            <label className="form-label text-xs">From Date</label>
+            <input type="date" className="glass-input rounded-xl px-3 py-2 text-sm"
+              value={historyStart} onChange={e => setHistoryStart(e.target.value)} />
+          </div>
+          <div>
+            <label className="form-label text-xs">To Date</label>
+            <input type="date" className="glass-input rounded-xl px-3 py-2 text-sm"
+              value={historyEnd} onChange={e => setHistoryEnd(e.target.value)} />
+          </div>
+          <p className="text-xs text-slate-500 pb-1">
+            Leave blank to see all movements
+          </p>
+        </div>
+      )}
+
+      {/* Date picker for day-wise products */}
+      {tab === 'day-products' && (        <div className="glass rounded-2xl p-3 flex flex-wrap items-end gap-4">
+          <div>
+            <label className="form-label text-xs">Select Date</label>
+            <input type="date" className="glass-input rounded-xl px-3 py-2.5 text-sm"
+              value={selectedDate} onChange={e => setSelectedDate(e.target.value)} />
+          </div>
+          <p className="text-xs text-slate-500 pb-1.5">
+            Product sales for {new Date(selectedDate + 'T00:00:00').toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })}
+          </p>
         </div>
       )}
 
@@ -286,6 +361,259 @@ export default function Reports() {
             )}
         </div>
       )}
+
+      {/* ── Stock History ── */}
+      {tab === 'stock-history' && (
+        <div className="space-y-3">
+          {stockHistory.isLoading ? (
+            [...Array(4)].map((_, i) => (
+              <div key={i} className="glass rounded-2xl p-4 space-y-2">
+                <div className="skeleton h-5 w-1/2 rounded" />
+                <div className="skeleton h-4 w-3/4 rounded" />
+              </div>
+            ))
+          ) : (stockHistory.data || []).length === 0 ? (
+            <div className="glass rounded-2xl p-12 text-center">
+              <AlertTriangle size={32} className="mx-auto mb-3 text-slate-600" />
+              <p className="text-slate-500">No stock movements found</p>
+              <p className="text-slate-600 text-xs mt-1">Try adjusting the date range</p>
+            </div>
+          ) : (
+            <>
+              {/* Summary row */}
+              <div className="glass rounded-2xl p-4 flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-slate-500 uppercase tracking-wider">Products with movements</p>
+                  <p className="text-2xl font-display font-bold gradient-text">{(stockHistory.data || []).length}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs text-slate-500 uppercase tracking-wider">Total movements</p>
+                  <p className="text-xl font-display font-bold text-brand-400">
+                    {(stockHistory.data || []).reduce((s, p) => s + (p.movements?.length || 0), 0)}
+                  </p>
+                </div>
+              </div>
+
+              {/* Product cards */}
+              {(stockHistory.data || []).map((product) => (
+                <div key={product._id} className="glass rounded-2xl overflow-hidden">
+                  {/* Product header — click to expand */}
+                  <button
+                    className="w-full flex items-center justify-between p-4 hover:bg-white/3 transition-colors text-left"
+                    onClick={() => setExpandedProduct(
+                      expandedProduct === product._id ? null : product._id
+                    )}
+                  >
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                        product.currentStock < product.minStockLevel ? 'bg-amber-400' : 'bg-emerald-400'
+                      }`} />
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-slate-200 truncate">{product.name}</p>
+                        {product.sku && <code className="text-xs text-brand-400">{product.sku}</code>}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4 flex-shrink-0 ml-3">
+                      <div className="text-center">
+                        <p className="text-xs text-slate-500">Current</p>
+                        <p className={`text-base font-bold ${
+                          product.currentStock < product.minStockLevel ? 'text-amber-400' : 'text-emerald-400'
+                        }`}>
+                          {product.currentStock} <span className="text-xs text-slate-500">{product.unit}</span>
+                        </p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-xs text-slate-500">Movements</p>
+                        <p className="text-sm font-bold text-brand-400">{product.movements?.length || 0}</p>
+                      </div>
+                      <span className="text-slate-500 text-xs">
+                        {expandedProduct === product._id ? '▲' : '▼'}
+                      </span>
+                    </div>
+                  </button>
+
+                  {/* Movement timeline — expanded */}
+                  {expandedProduct === product._id && product.movements?.length > 0 && (
+                    <div className="border-t border-white/5 max-h-80 overflow-y-auto">
+                      {product.movements.map((m, mi) => {
+                        const isPurchase  = m.type === 'PURCHASE'
+                        const isSale      = m.type === 'SALE'
+                        const isAdjust    = m.type === 'ADJUSTMENT'
+                        const dotColor    = isPurchase ? 'bg-emerald-400' : isSale ? 'bg-rose-400' : 'bg-amber-400'
+                        const qtyColor    = isPurchase ? 'text-emerald-400' : isSale ? 'text-rose-400' : 'text-amber-400'
+                        const dateTime    = new Date(m.dateTime)
+                        return (
+                          <div key={mi} className="flex items-start gap-3 px-4 py-3 border-b border-white/4 last:border-0 hover:bg-white/2">
+                            {/* Dot + line */}
+                            <div className="flex flex-col items-center gap-1 flex-shrink-0 mt-1">
+                              <span className={`w-2.5 h-2.5 rounded-full ${dotColor}`} />
+                              {mi < product.movements.length - 1 && (
+                                <span className="w-px flex-1 bg-white/5 min-h-4" />
+                              )}
+                            </div>
+
+                            {/* Details */}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-start justify-between gap-2">
+                                <div>
+                                  <p className="text-xs font-semibold text-slate-200">
+                                    {isPurchase ? '📦 Purchase / Stock IN' : isSale ? '🛒 Sale / Stock OUT' : '⚙️ Adjustment'}
+                                  </p>
+                                  {m.remarks && <p className="text-xs text-slate-500 mt-0.5">{m.remarks}</p>}
+                                </div>
+                                <div className="text-right flex-shrink-0">
+                                  <p className={`text-sm font-bold ${qtyColor}`}>
+                                    {m.qty > 0 ? '+' : ''}{m.qty} {product.unit}
+                                  </p>
+                                  <p className="text-xs text-slate-500">
+                                    {m.previousStock} → {m.currentStock}
+                                  </p>
+                                </div>
+                              </div>
+                              {/* Date + Time */}
+                              <p className="text-xs text-slate-600 mt-1">
+                                🕐 {dateTime.toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' })}
+                                {' '}at{' '}
+                                {dateTime.toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit', hour12: true })}
+                              </p>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+
+                  {/* Empty movements */}
+                  {expandedProduct === product._id && (!product.movements || product.movements.length === 0) && (
+                    <div className="px-4 py-6 text-center text-slate-500 text-xs border-t border-white/5">
+                      No movements in selected date range
+                    </div>
+                  )}
+                </div>
+              ))}
+            </>
+          )}
+        </div>
+      )}
+
+      {/* ── Day-wise Product Sales ── */}
+      {tab === 'day-products' && (
+        <div className="space-y-3">
+          {dayProducts.isLoading ? (
+            [...Array(5)].map((_, i) => (
+              <div key={i} className="glass rounded-2xl p-4"><div className="skeleton h-4 w-3/4 rounded" /></div>
+            ))
+          ) : (dayProducts.data || []).length === 0 ? (
+            <div className="glass rounded-2xl p-10 text-center text-slate-500">
+              <TrendingUp size={32} className="mx-auto mb-3 opacity-20" />
+              <p>No sales recorded for this date</p>
+            </div>
+          ) : (
+            <>
+              {/* Summary bar */}
+              <div className="glass rounded-2xl p-4 flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-slate-500 uppercase tracking-wider">Total Products Sold</p>
+                  <p className="text-2xl font-display font-bold gradient-text">
+                    {(dayProducts.data || []).reduce((s, p) => s + p.totalQty, 0)} units
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs text-slate-500 uppercase tracking-wider">Total Revenue</p>
+                  <p className="text-xl font-display font-bold text-emerald-400">
+                    {fmt.currency((dayProducts.data || []).reduce((s, p) => s + p.totalRev, 0))}
+                  </p>
+                </div>
+              </div>
+
+              {/* Product rows */}
+              {(dayProducts.data || []).map((p, i) => (
+                <div key={p._id || i} className="glass rounded-2xl p-4 flex items-center gap-3">
+                  <span className="w-7 h-7 rounded-xl bg-brand-500/20 text-brand-400 text-sm font-bold flex items-center justify-center flex-shrink-0">
+                    {i + 1}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-slate-200 truncate">{p.productName}</p>
+                    {p.sku && <code className="text-xs text-brand-400">{p.sku}</code>}
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <p className="text-base font-bold text-slate-100">{fmt.number(p.totalQty)} <span className="text-xs text-slate-500">units</span></p>
+                    <p className="text-xs text-emerald-400">{fmt.currency(p.totalRev)}</p>
+                  </div>
+                </div>
+              ))}
+            </>
+          )}
+        </div>
+      )}
+
+      {/* ── Month-wise Product Sales ── */}
+      {tab === 'month-products' && (
+        <div className="space-y-3">
+          {monthProducts.isLoading ? (
+            [...Array(5)].map((_, i) => (
+              <div key={i} className="glass rounded-2xl p-4"><div className="skeleton h-4 w-3/4 rounded" /></div>
+            ))
+          ) : (monthProducts.data || []).length === 0 ? (
+            <div className="glass rounded-2xl p-10 text-center text-slate-500">
+              <TrendingUp size={32} className="mx-auto mb-3 opacity-20" />
+              <p>No sales recorded for {months[month - 1]} {year}</p>
+            </div>
+          ) : (
+            <>
+              {/* Summary */}
+              <div className="glass rounded-2xl p-4 flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-slate-500 uppercase tracking-wider">{months[month-1]} {year} — Total Products</p>
+                  <p className="text-2xl font-display font-bold gradient-text">
+                    {(monthProducts.data || []).reduce((s, p) => s + p.totalQty, 0)} units
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs text-slate-500 uppercase tracking-wider">Total Revenue</p>
+                  <p className="text-xl font-display font-bold text-emerald-400">
+                    {fmt.currency((monthProducts.data || []).reduce((s, p) => s + p.totalRev, 0))}
+                  </p>
+                </div>
+              </div>
+
+              {/* Product cards with day breakdown */}
+              {(monthProducts.data || []).map((p, i) => (
+                <div key={p._id || i} className="glass rounded-2xl overflow-hidden">
+                  {/* Product header */}
+                  <div className="flex items-center gap-3 p-4 border-b border-white/5">
+                    <span className="w-7 h-7 rounded-xl bg-brand-500/20 text-brand-400 text-sm font-bold flex items-center justify-center flex-shrink-0">
+                      {i + 1}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-slate-200 truncate">{p.productName}</p>
+                      {p.sku && <code className="text-xs text-brand-400">{p.sku}</code>}
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <p className="text-base font-bold text-slate-100">{fmt.number(p.totalQty)} <span className="text-xs text-slate-500">units</span></p>
+                      <p className="text-xs text-emerald-400">{fmt.currency(p.totalRev)}</p>
+                    </div>
+                  </div>
+
+                  {/* Day-by-day breakdown */}
+                  {p.dailyBreakdown && p.dailyBreakdown.length > 0 && (
+                    <div className="p-3 grid grid-cols-4 sm:grid-cols-7 gap-1.5">
+                      {p.dailyBreakdown.map((d, di) => (
+                        <div key={di} className="glass-dark rounded-lg p-2 text-center">
+                          <p className="text-xs text-slate-500">Day {d.day}</p>
+                          <p className="text-xs font-bold text-slate-200">{d.totalQty} <span className="text-slate-600">u</span></p>
+                          <p className="text-xs text-emerald-400">{fmt.currency(d.totalRev)}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </>
+          )}
+        </div>
+      )}
+
     </div>
   )
 }
