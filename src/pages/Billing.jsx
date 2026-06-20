@@ -145,10 +145,10 @@ function BillForm({ onSubmit, loading }) {
                   </div>
                   {isGst ? (
                     <div>
-                      <label className="text-xs text-slate-500">GST%</label>
+                      <label className="text-xs text-slate-500">CGST%+SGST%</label>
                       <select className="glass-input rounded-lg px-1 py-1.5 text-xs w-full mt-0.5"
                         {...register(`items.${idx}.gstRate`, { valueAsNumber: true })}>
-                        {gstRates.map(r => <option key={r} value={r}>{r}%</option>)}
+                        {[0,3,5,6,9,12,14,18,28].map(r => <option key={r} value={r}>{r/2}+{r/2}%</option>)}
                       </select>
                     </div>
                   ) : (
@@ -187,7 +187,10 @@ function BillForm({ onSubmit, loading }) {
               <div className="flex justify-between text-rose-400"><span>Discount ({overallDiscount}%)</span><span>-{fmt.currency(totals.overallDiscountAmount)}</span></div>
             )}
             {isGst && totals.gstAmount > 0 && (
-              <div className="flex justify-between text-slate-400"><span>GST</span><span>{fmt.currency(totals.gstAmount)}</span></div>
+              <>
+                <div className="flex justify-between text-slate-400"><span>CGST</span><span>{fmt.currency(totals.gstAmount / 2)}</span></div>
+                <div className="flex justify-between text-slate-400"><span>SGST</span><span>{fmt.currency(totals.gstAmount / 2)}</span></div>
+              </>
             )}
             {roundOff !== 0 && <div className="flex justify-between text-slate-500 text-xs"><span>Round Off</span><span>{roundOff > 0 ? '+' : ''}{fmt.currency(roundOff)}</span></div>}
             <div className="flex justify-between items-center pt-2 border-t border-white/8">
@@ -256,7 +259,12 @@ function BillView({ bill, shopSettings }) {
       {/* Totals */}
       <div className="glass-dark rounded-xl p-4 space-y-1.5 text-sm">
         <div className="flex justify-between text-slate-400"><span>Subtotal</span><span>{fmt.currency(bill.subtotal)}</span></div>
-        {bill.gstAmount > 0 && <div className="flex justify-between text-slate-400"><span>GST</span><span>{fmt.currency(bill.gstAmount)}</span></div>}
+        {bill.gstAmount > 0 && (
+          <>
+            <div className="flex justify-between text-slate-400"><span>CGST</span><span>{fmt.currency(bill.gstAmount / 2)}</span></div>
+            <div className="flex justify-between text-slate-400"><span>SGST</span><span>{fmt.currency(bill.gstAmount / 2)}</span></div>
+          </>
+        )}
         {bill.overallDiscountAmount > 0 && <div className="flex justify-between text-rose-400"><span>Discount</span><span>-{fmt.currency(bill.overallDiscountAmount)}</span></div>}
         <div className="flex justify-between font-bold text-slate-100 text-base border-t border-white/5 pt-2">
           <span>Grand Total</span><span className="gradient-text">{fmt.currency(bill.grandTotal)}</span>
