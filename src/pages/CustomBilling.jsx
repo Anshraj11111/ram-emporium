@@ -38,7 +38,7 @@ function CustomBillForm({ onSubmit, loading }) {
   const { register, control, handleSubmit, watch } = useForm({
     defaultValues: {
       paymentMode: 'CASH',
-      items: [{ description: '', qty: 1, unit: 'PCS', rate: '', discount: 0, cgst: 9, sgst: 9 }],
+      items: [{ description: '', qty: 1, unit: 'PCS', rate: '', discount: 0, cgst: 0, sgst: 0 }],
     },
   })
 
@@ -103,7 +103,7 @@ function CustomBillForm({ onSubmit, loading }) {
           <div className="flex items-center justify-between mb-2">
             <label className="form-label mb-0">Items *</label>
             <button type="button" className="btn-secondary text-xs px-3 py-1.5"
-              onClick={() => append({ description: '', qty: 1, unit: 'PCS', rate: '', discount: 0, cgst: 9, sgst: 9 })}>
+              onClick={() => append({ description: '', qty: 1, unit: 'PCS', rate: '', discount: 0, cgst: 0, sgst: 0 })}>
               <Plus size={13} /> Add Item
             </button>
           </div>

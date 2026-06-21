@@ -24,8 +24,8 @@ const schema = z.object({
   category:      z.string().optional(),
   unit:          z.string().optional(),
   priceUnit:     z.string().optional(),
-  cgst:          z.coerce.number().min(0).max(50).optional().default(9),
-  sgst:          z.coerce.number().min(0).max(50).optional().default(9),
+  cgst:          z.coerce.number().min(0).max(50).optional().default(0),
+  sgst:          z.coerce.number().min(0).max(50).optional().default(0),
   purchasePrice: z.coerce.number().min(0).optional(),
   sellingPrice:  z.coerce.number().min(0, 'Selling price required'),
   stockQty:      z.coerce.number().min(0).optional(),
@@ -51,7 +51,7 @@ function ProductForm({ onSubmit, defaultValues, loading }) {
   const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm({
     resolver: zodResolver(schema),
     defaultValues: defaultValues || {
-      cgst: 9, sgst: 9, unit: 'PCS', stockQty: 0, minStockLevel: 5, priceUnit: '',
+      cgst: 0, sgst: 0, unit: 'PCS', stockQty: 0, minStockLevel: 5, priceUnit: '',
     },
   })
 

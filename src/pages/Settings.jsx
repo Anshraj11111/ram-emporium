@@ -7,7 +7,7 @@ import { useEffect, useRef } from 'react'
 import toast from 'react-hot-toast'
 import Button from '../components/ui/Button'
 import Input from '../components/ui/Input'
-import { Store, Upload, FileText, CreditCard, QrCode, PenLine } from 'lucide-react'
+import { Store, Upload, FileText, CreditCard, QrCode, PenLine, Trash2 } from 'lucide-react'
 import UpiQR from '../components/ui/UpiQR'
 
 const schema = z.object({
@@ -76,6 +76,11 @@ export default function Settings() {
   const signatureMut = useMutation({
     mutationFn: (file) => settingsAPI.uploadSignature(file),
     onSuccess: () => { qc.invalidateQueries(['settings']); toast.success('Signature uploaded — will appear on PDF bills') },
+  })
+
+  const removeSignatureMut = useMutation({
+    mutationFn: () => settingsAPI.removeSignature(),
+    onSuccess: () => { qc.invalidateQueries(['settings']); toast.success('Signature removed') },
   })
 
   if (isLoading) {
@@ -237,6 +242,19 @@ export default function Settings() {
                 <Upload size={14} />
                 <span>{settings?.signatureUrl ? 'Replace Signature' : 'Upload Signature'}</span>
               </Button>
+              {settings?.signatureUrl && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="mt-2 text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                  onClick={() => removeSignatureMut.mutate()}
+                  loading={removeSignatureMut.isPending}
+                >
+                  <Trash2 size={14} />
+                  <span>Remove Signature</span>
+                </Button>
+              )}
               <div className="mt-3 space-y-1 text-xs text-slate-500">
                 <p>• PNG, JPG or WebP — max 2MB</p>
                 <p>• Use a white/transparent background for best results</p>

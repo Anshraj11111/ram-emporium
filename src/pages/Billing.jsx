@@ -48,7 +48,7 @@ function BillForm({ onSubmit, loading }) {
 
   const addProduct = (p) => append({
     productId: p._id, productName: p.name, sku: p.sku, unit: p.unit || 'PCS',
-    quantity: 1, rate: p.sellingPrice, discountPercentage: 0, gstRate: p.gstRate || 18,
+    quantity: 1, rate: p.sellingPrice, discountPercentage: 0, gstRate: p.gstRate || 0,
   })
 
   const handleSubmitForm = (data) => {

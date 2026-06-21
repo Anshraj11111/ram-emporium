@@ -56,7 +56,7 @@ function QuotationForm({ onSubmit, defaultValues, loading }) {
       quantity:           1,
       rate:               p.sellingPrice,
       discountPercentage: 0,
-      gstRate:            p.gstRate || 18,
+      gstRate:            p.gstRate || 0,
     })
   }
 

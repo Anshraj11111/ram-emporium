@@ -106,6 +106,7 @@ export const settingsAPI = {
     fd.append('signature', file)
     return api.post('/settings/signature', fd, { headers: { 'Content-Type': 'multipart/form-data' } })
   },
+  removeSignature: () => api.delete('/settings/signature'),
 }
 
 // ── Notifications ─────────────────────────────────
