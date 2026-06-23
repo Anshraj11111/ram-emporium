@@ -13,6 +13,7 @@ const Stock           = lazy(() => import('./pages/Stock'))
 const Quotations      = lazy(() => import('./pages/Quotations'))
 const Billing         = lazy(() => import('./pages/Billing'))
 const CustomBilling   = lazy(() => import('./pages/CustomBilling'))
+const Credit          = lazy(() => import('./pages/Credit'))
 const Reports         = lazy(() => import('./pages/Reports'))
 const Settings        = lazy(() => import('./pages/Settings'))
 const Notifications   = lazy(() => import('./pages/Notifications'))
@@ -75,6 +76,7 @@ export default function App() {
           <Route path="quotations"    element={<Quotations />} />
           <Route path="billing"         element={<Billing />} />
           <Route path="custom-billing"  element={<CustomBilling />} />
+          <Route path="credit"          element={<Credit />} />
           <Route path="reports"       element={<Reports />} />
           <Route path="settings"      element={<Settings />} />
           <Route path="notifications" element={<Notifications />} />

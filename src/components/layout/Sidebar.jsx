@@ -2,21 +2,22 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, Package, FileText, Receipt,
   BarChart2, Settings, LogOut, Warehouse, Bell,
-  UserCog, User, X
+  UserCog, User, X, CreditCard
 } from 'lucide-react'
 import useAuthStore from '../../store/authStore'
 import toast from 'react-hot-toast'
 
 const navItems = [
-  { to: '/dashboard',     icon: LayoutDashboard, label: 'Dashboard'    },
-  { to: '/products',      icon: Package,         label: 'Products'     },
-  { to: '/stock',         icon: Warehouse,        label: 'Stock'        },
-  { to: '/quotations',    icon: FileText,         label: 'Quotations'  },
-  { to: '/billing',       icon: Receipt,          label: 'Billing'      },
-  { to: '/custom-billing',icon: FileText,         label: 'Custom Bill' },
-  { to: '/reports',       icon: BarChart2,        label: 'Reports'      },
-  { to: '/notifications', icon: Bell,             label: 'Notifications'},
-  { to: '/settings',      icon: Settings,         label: 'Settings'     },
+  { to: '/dashboard',      icon: LayoutDashboard, label: 'Dashboard'    },
+  { to: '/products',       icon: Package,         label: 'Products'     },
+  { to: '/stock',          icon: Warehouse,        label: 'Stock'        },
+  { to: '/quotations',     icon: FileText,         label: 'Quotations'  },
+  { to: '/billing',        icon: Receipt,          label: 'Billing'      },
+  { to: '/custom-billing', icon: FileText,         label: 'Custom Bill' },
+  { to: '/credit',         icon: CreditCard,       label: 'Credit'       },
+  { to: '/reports',        icon: BarChart2,        label: 'Reports'      },
+  { to: '/notifications',  icon: Bell,             label: 'Notifications'},
+  { to: '/settings',       icon: Settings,         label: 'Settings'     },
 ]
 
 const adminNav = [

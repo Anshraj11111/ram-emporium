@@ -124,6 +124,13 @@ export const customBillsAPI = {
   delete:      (id)     => api.delete(`/custom-bills/${id}`),
   generatePDF: (id)     => api.post(`/custom-bills/${id}/generate-pdf`),
 }
+// ── Credit / Due Tracker ──────────────────────────
+export const creditAPI = {
+  list:      (params) => api.get('/credit', { params: clean(params) }),
+  markPaid:  (source, id) => api.patch(`/credit/${source}/${id}/mark-paid`),
+  addPayment:(source, id, amount) => api.patch(`/credit/${source}/${id}/pay`, { amount }),
+}
+
 export const usersAPI = {
   list:       (params) => api.get('/users', { params: clean(params) }),
   getById:    (id)     => api.get(`/users/${id}`),

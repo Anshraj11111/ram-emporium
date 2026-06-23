@@ -22,7 +22,7 @@ import ConfirmDialog from '../components/ui/ConfirmDialog'
 function BillForm({ onSubmit, loading }) {
   const { register, control, handleSubmit, watch } = useForm({
     defaultValues: {
-      type: 'GST', paymentMode: 'CASH', overallDiscount: 0, items: [],
+      type: 'NON_GST', paymentMode: 'CASH', overallDiscount: 0, items: [],
       customerName: '', customerMobile: '', customerAddress: '', customerGst: '',
     },
   })
