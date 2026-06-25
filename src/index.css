@@ -455,6 +455,23 @@ input, select, textarea {
   overscroll-behavior: contain;
 }
 
+/* ── Main scroll area ────────────────────────── */
+#main-scroll {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ── Table wrapper fix ───────────────────────── */
+/* overflow-hidden + backdrop-filter creates stacking context that    */
+/* traps mousewheel scroll events in Chromium. Use clip instead.      */
+.table-wrap {
+  border-radius: 16px;
+  overflow: clip;           /* clips visually like hidden, but does NOT */
+  /* create a scroll container → wheel events propagate to #main-scroll */
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.05);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05);
+}
+
 /* ── Mobile: taller tap targets ──────────────── */
 @media (max-width: 767px) {
   .sidebar-link { padding: 13px 14px; min-height: 48px; }

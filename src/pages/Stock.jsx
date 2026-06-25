@@ -236,7 +236,7 @@ export default function Stock() {
               ))}
         </div>
       ) : (
-        <div className="glass rounded-2xl overflow-hidden">
+        <div className="table-wrap">
           <Table>
             <thead><tr>
               <Th>Product</Th><Th>SKU</Th><Th>Category</Th>

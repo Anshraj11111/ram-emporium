@@ -112,7 +112,7 @@ export default function Customers() {
       </div>
 
       {/* Table */}
-      <div className="glass rounded-2xl overflow-hidden">
+      <div className="table-wrap">
         <Table>
           <thead>
             <tr>

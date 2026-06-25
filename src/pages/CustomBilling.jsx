@@ -399,7 +399,7 @@ export default function CustomBilling() {
               ))}
         </div>
       ) : (
-        <div className="glass rounded-2xl overflow-hidden">
+        <div className="table-wrap">
           <Table>
             <thead><tr>
               <Th>Bill No</Th><Th>Customer</Th><Th>Items</Th>

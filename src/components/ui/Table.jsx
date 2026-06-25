@@ -2,7 +2,7 @@ import { cn } from '../../lib/utils'
 
 export function Table({ children, className }) {
   return (
-    <div className="overflow-x-auto">
+    <div className="overflow-x-auto w-full">
       <table className={cn('glass-table', className)}>{children}</table>
     </div>
   )

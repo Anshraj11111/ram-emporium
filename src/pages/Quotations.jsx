@@ -509,7 +509,7 @@ export default function Quotations() {
           <Pagination meta={pagination} onPageChange={setPage} />
         </div>
       ) : (
-      <div className="glass rounded-2xl overflow-hidden">
+      <div className="table-wrap">
         <Table>
           <thead>
             <tr>

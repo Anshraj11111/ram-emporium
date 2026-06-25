@@ -359,7 +359,7 @@ export default function Products() {
               ))}
         </div>
       ) : (
-        <div className="glass rounded-2xl overflow-hidden">
+        <div className="table-wrap">
           <Table>
             <thead><tr>
               <Th>SKU</Th><Th>Name</Th><Th>Category</Th>

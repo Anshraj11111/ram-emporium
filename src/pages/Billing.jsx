@@ -440,7 +440,7 @@ export default function Billing() {
             : bills.map(b => <BillCard key={b._id} bill={b} onView={setViewId} onPdf={(id) => pdfMut.mutate(id)} onDelete={setDeleteId} />)}
         </div>
       ) : (
-        <div className="glass rounded-2xl overflow-hidden">
+        <div className="table-wrap">
           <Table>
             <thead><tr>
               <Th>Bill No</Th><Th>Type</Th><Th>Customer</Th><Th>Mobile</Th>

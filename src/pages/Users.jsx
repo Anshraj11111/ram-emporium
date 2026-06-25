@@ -132,7 +132,7 @@ export default function Users() {
         </Button>
       </div>
 
-      <div className="glass rounded-2xl overflow-hidden">
+      <div className="table-wrap">
         <Table>
           <thead>
             <tr>
