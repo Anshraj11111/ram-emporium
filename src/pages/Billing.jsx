@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { billsAPI, settingsAPI } from '../services'
 import { fmt, calcItemAmounts, calcBillTotals, gstRates, paymentModes } from '../lib/utils'
-import { Plus, Eye, FileDown, Receipt, Trash2, User, Phone, MapPin, Hash, QrCode } from 'lucide-react'
+import { Plus, Eye, FileDown, Receipt, Trash2, User, Phone, MapPin, Hash, QrCode, PlusCircle } from 'lucide-react'
 import { useForm, useFieldArray } from 'react-hook-form'
 import toast from 'react-hot-toast'
 import Button from '../components/ui/Button'
@@ -51,7 +51,19 @@ function BillForm({ onSubmit, loading }) {
     quantity: 1, rate: p.sellingPrice, discountPercentage: 0, gstRate: p.gstRate || 0,
   })
 
+  const addManualItem = () => append({
+    productId: null, productName: '', sku: 'MANUAL', unit: 'PCS',
+    quantity: 1, rate: 0, discountPercentage: 0, gstRate: isGst ? 18 : 0,
+  })
+
   const handleSubmitForm = (data) => {
+    // Validate manual items have product names
+    const invalidManual = items.find((item, idx) => item.sku === 'MANUAL' && !item.productName?.trim())
+    if (invalidManual) {
+      toast.error('Please enter product name for manual items')
+      return
+    }
+
     onSubmit({
       type: data.type, paymentMode: data.paymentMode,
       overallDiscount: Number(data.overallDiscount) || 0,
@@ -64,9 +76,14 @@ function BillForm({ onSubmit, loading }) {
         address: data.customerAddress || '',
       },
       items: items.map(item => ({
-        productId: item.productId, quantity: Number(item.quantity),
-        rate: Number(item.rate), discountPercentage: Number(item.discountPercentage) || 0,
-        gstRate: isGst ? Number(item.gstRate) : 0, productName: item.productName,
+        productId: item.productId || undefined,  // Don't send null, send undefined
+        productName: item.productName,
+        sku: item.sku,
+        unit: item.unit || 'PCS',
+        quantity: Number(item.quantity),
+        rate: Number(item.rate),
+        discountPercentage: Number(item.discountPercentage) || 0,
+        gstRate: isGst ? Number(item.gstRate) : 0,
       })),
     })
   }
@@ -103,7 +120,20 @@ function BillForm({ onSubmit, loading }) {
       {/* Products */}
       <div>
         <label className="form-label">Add Products *</label>
-        <ProductSearchInput onSelect={addProduct} excludeIds={addedIds} />
+        <div className="flex gap-2">
+          <div className="flex-1">
+            <ProductSearchInput onSelect={addProduct} excludeIds={addedIds} />
+          </div>
+          <button
+            type="button"
+            onClick={addManualItem}
+            className="btn-secondary rounded-xl px-4 py-2.5 text-sm flex items-center gap-2 flex-shrink-0"
+            title="Add manual item"
+          >
+            <PlusCircle size={15} />
+            <span className="hidden sm:inline">Manual</span>
+          </button>
+        </div>
       </div>
 
       {/* Items */}
@@ -116,12 +146,24 @@ function BillForm({ onSubmit, loading }) {
               discountPercentage: Number(watch(`items.${idx}.discountPercentage`)) || 0,
               gstRate: isGst ? (Number(watch(`items.${idx}.gstRate`)) || 0) : 0,
             })
+            const isManual = watch(`items.${idx}.sku`) === 'MANUAL'
             return (
               <div key={field.id} className="glass-dark rounded-xl p-3">
                 <div className="flex items-start justify-between gap-2 mb-2">
-                  <div className="min-w-0">
-                    <p className="text-xs font-semibold text-slate-200 truncate">{watch(`items.${idx}.productName`)}</p>
-                    <p className="text-xs text-slate-500">{watch(`items.${idx}.sku`)}</p>
+                  <div className="min-w-0 flex-1">
+                    {isManual ? (
+                      <input
+                        type="text"
+                        placeholder="Enter product name *"
+                        className="glass-input rounded-lg px-2 py-1.5 text-xs w-full font-semibold text-slate-200 mb-1"
+                        {...register(`items.${idx}.productName`, { required: 'Product name required' })}
+                      />
+                    ) : (
+                      <p className="text-xs font-semibold text-slate-200 truncate">{watch(`items.${idx}.productName`)}</p>
+                    )}
+                    <p className="text-xs text-slate-500">
+                      {isManual ? '✏️ Manual Entry' : watch(`items.${idx}.sku`)}
+                    </p>
                   </div>
                   <button type="button" className="btn-icon w-7 h-7 text-slate-600 hover:text-rose-400 flex-shrink-0" onClick={() => remove(idx)}>
                     <Trash2 size={13} />
