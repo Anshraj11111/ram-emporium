@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { billsAPI, settingsAPI } from '../services'
 import { fmt, calcItemAmounts, calcBillTotals, gstRates, paymentModes } from '../lib/utils'
-import { Plus, Eye, FileDown, Receipt, Trash2, User, Phone, MapPin, Hash, QrCode, PlusCircle } from 'lucide-react'
+import { Plus, Eye, FileDown, Receipt, Trash2, User, Phone, MapPin, Hash, QrCode, PlusCircle, Pencil } from 'lucide-react'
 import { useForm, useFieldArray } from 'react-hook-form'
 import toast from 'react-hot-toast'
 import Button from '../components/ui/Button'
@@ -19,7 +19,7 @@ import UpiQR from '../components/ui/UpiQR'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
 
 // ── Bill Form ──────────────────────────────────────
-function BillForm({ onSubmit, loading }) {
+function BillForm({ onSubmit, loading, shopSettings }) {
   const { register, control, handleSubmit, watch } = useForm({
     defaultValues: {
       type: 'NON_GST', paymentMode: 'CASH', overallDiscount: 0, items: [],
@@ -29,6 +29,7 @@ function BillForm({ onSubmit, loading }) {
   const { fields, append, remove } = useFieldArray({ control, name: 'items' })
 
   const type            = watch('type')
+  const paymentMode     = watch('paymentMode')
   const overallDiscount = Number(watch('overallDiscount') || 0)
   const items           = watch('items') || []
   const isGst           = type === 'GST'
@@ -250,6 +251,28 @@ function BillForm({ onSubmit, loading }) {
         </div>
       )}
 
+      {/* UPI QR in form */}
+      {fields.length > 0 && paymentMode === 'UPI' && shopSettings?.upiId && (
+        <div className="glass-dark rounded-2xl p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <QrCode size={15} className="text-brand-400" />
+            <p className="text-sm font-semibold text-slate-300">Scan to Pay via UPI</p>
+          </div>
+          <div className="flex justify-center">
+            <UpiQR 
+              upiId={shopSettings.upiId} 
+              name={shopSettings.shopName}
+              amount={grandTotal}
+              note="Payment for bill"
+              size={180}
+            />
+          </div>
+          <p className="text-center text-xs text-slate-500 mt-3">
+            Amount: <span className="text-brand-400 font-semibold">{fmt.currency(grandTotal)}</span>
+          </p>
+        </div>
+      )}
+
       <div className="flex justify-end pt-1">
         <Button type="submit" loading={loading} disabled={fields.length === 0} size="lg">
           <Receipt size={16} /><span>Generate Bill</span>
@@ -259,7 +282,260 @@ function BillForm({ onSubmit, loading }) {
   )
 }
 
-// ── Bill View ──────────────────────────────────────
+// ── Edit Bill Form ─────────────────────────────────
+function EditBillForm({ bill, onSubmit, loading, shopSettings }) {
+  const { register, control, handleSubmit, watch } = useForm({
+    defaultValues: {
+      type:             bill.type,
+      paymentMode:      bill.paymentMode,
+      overallDiscount:  bill.overallDiscount || 0,
+      paidAmount:       bill.paidAmount,
+      notes:            bill.notes || '',
+      customerName:     bill.customerSnapshot?.name || '',
+      customerMobile:   bill.customerSnapshot?.mobile || '',
+      customerAddress:  bill.customerSnapshot?.address || '',
+      customerGst:      bill.customerSnapshot?.gstNumber || '',
+      items: (bill.items || []).map(i => ({
+        productId:          i.productId || null,
+        productName:        i.productName,
+        sku:                i.sku || 'MANUAL',
+        unit:               i.unit || 'PCS',
+        quantity:           i.quantity,
+        rate:               i.rate,
+        discountPercentage: i.discountPercentage || 0,
+        gstRate:            i.gstRate || 0,
+      })),
+    },
+  })
+  const { fields, append, remove } = useFieldArray({ control, name: 'items' })
+
+  const type            = watch('type')
+  const paymentMode     = watch('paymentMode')
+  const overallDiscount = Number(watch('overallDiscount') || 0)
+  const items           = watch('items') || []
+  const isGst           = type === 'GST'
+  const addedIds        = fields.map(f => f.productId).filter(Boolean)
+
+  const processedItems = items.map(i => ({
+    ...i,
+    ...calcItemAmounts({
+      quantity: Number(i.quantity) || 0, rate: Number(i.rate) || 0,
+      discountPercentage: Number(i.discountPercentage) || 0,
+      gstRate: isGst ? (Number(i.gstRate) || 0) : 0,
+    }),
+  }))
+  const totals     = calcBillTotals(processedItems, overallDiscount)
+  const roundOff   = Math.round(totals.grandTotal) - totals.grandTotal
+  const grandTotal = Math.round(totals.grandTotal)
+
+  const addProduct = (p) => append({
+    productId: p._id, productName: p.name, sku: p.sku, unit: p.unit || 'PCS',
+    quantity: 1, rate: p.sellingPrice, discountPercentage: 0, gstRate: p.gstRate || 0,
+  })
+
+  const addManualItem = () => append({
+    productId: null, productName: '', sku: 'MANUAL', unit: 'PCS',
+    quantity: 1, rate: 0, discountPercentage: 0, gstRate: isGst ? 18 : 0,
+  })
+
+  const handleSubmitForm = (data) => {
+    const invalidManual = items.find(item => item.sku === 'MANUAL' && !item.productName?.trim())
+    if (invalidManual) { toast.error('Please enter product name for manual items'); return }
+
+    onSubmit({
+      type: data.type, paymentMode: data.paymentMode,
+      overallDiscount: Number(data.overallDiscount) || 0,
+      paidAmount: data.paidAmount ? Number(data.paidAmount) : grandTotal,
+      notes: data.notes,
+      customerSnapshot: {
+        name:      data.customerName || 'Walk-in Customer',
+        mobile:    data.customerMobile || '',
+        gstNumber: data.customerGst || '',
+        address:   data.customerAddress || '',
+      },
+      items: items.map(item => ({
+        productId:          item.productId || undefined,
+        productName:        item.productName,
+        sku:                item.sku,
+        unit:               item.unit || 'PCS',
+        quantity:           Number(item.quantity),
+        rate:               Number(item.rate),
+        discountPercentage: Number(item.discountPercentage) || 0,
+        gstRate:            isGst ? Number(item.gstRate) : 0,
+      })),
+    })
+  }
+
+  return (
+    <form onSubmit={handleSubmit(handleSubmitForm)} className="space-y-4">
+      {/* Type + Payment */}
+      <div className="grid grid-cols-2 gap-3">
+        <Select label="Bill Type *" {...register('type')}>
+          <option value="GST">GST Bill</option>
+          <option value="NON_GST">Non-GST Bill</option>
+        </Select>
+        <Select label="Payment" {...register('paymentMode')}>
+          {paymentModes.map(m => <option key={m} value={m}>{m}</option>)}
+        </Select>
+      </div>
+
+      {/* Customer */}
+      <div className="glass-dark rounded-2xl p-3 space-y-3">
+        <p className="text-xs font-semibold text-slate-400 flex items-center gap-1.5">
+          <User size={13} className="text-brand-400" /> Customer Details
+        </p>
+        <div className="grid grid-cols-2 gap-2">
+          <input className="glass-input rounded-xl px-3 py-2.5 text-sm" placeholder="Customer Name" {...register('customerName')} />
+          <input className="glass-input rounded-xl px-3 py-2.5 text-sm" placeholder="Mobile" maxLength={10} {...register('customerMobile')} />
+        </div>
+        <input className="glass-input w-full rounded-xl px-3 py-2.5 text-sm" placeholder="Address" {...register('customerAddress')} />
+        {isGst && (
+          <input className="glass-input w-full rounded-xl px-3 py-2.5 text-sm uppercase" placeholder="GST Number" maxLength={15} {...register('customerGst')} />
+        )}
+      </div>
+
+      {/* Add more products */}
+      <div>
+        <label className="form-label">Items</label>
+        <div className="flex gap-2">
+          <div className="flex-1">
+            <ProductSearchInput onSelect={addProduct} excludeIds={addedIds} />
+          </div>
+          <button type="button" onClick={addManualItem}
+            className="btn-secondary rounded-xl px-4 py-2.5 text-sm flex items-center gap-2 flex-shrink-0">
+            <PlusCircle size={15} /><span className="hidden sm:inline">Manual</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Items */}
+      {fields.length > 0 && (
+        <div className="space-y-2">
+          {fields.map((field, idx) => {
+            const isManual = watch(`items.${idx}.sku`) === 'MANUAL'
+            const calc = calcItemAmounts({
+              quantity: Number(watch(`items.${idx}.quantity`)) || 0,
+              rate: Number(watch(`items.${idx}.rate`)) || 0,
+              discountPercentage: Number(watch(`items.${idx}.discountPercentage`)) || 0,
+              gstRate: isGst ? (Number(watch(`items.${idx}.gstRate`)) || 0) : 0,
+            })
+            return (
+              <div key={field.id} className="glass-dark rounded-xl p-3">
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <div className="min-w-0 flex-1">
+                    {isManual ? (
+                      <input type="text" placeholder="Enter product name *"
+                        className="glass-input rounded-lg px-2 py-1.5 text-xs w-full font-semibold text-slate-200 mb-1"
+                        {...register(`items.${idx}.productName`)} />
+                    ) : (
+                      <p className="text-xs font-semibold text-slate-200 truncate">{watch(`items.${idx}.productName`)}</p>
+                    )}
+                    <p className="text-xs text-slate-500">{isManual ? '✏️ Manual Entry' : watch(`items.${idx}.sku`)}</p>
+                  </div>
+                  <button type="button" className="btn-icon w-7 h-7 text-slate-600 hover:text-rose-400 flex-shrink-0" onClick={() => remove(idx)}>
+                    <Trash2 size={13} />
+                  </button>
+                </div>
+                <div className="grid grid-cols-4 gap-1.5">
+                  <div>
+                    <label className="text-xs text-slate-500">Qty</label>
+                    <input type="number" min="1" className="glass-input rounded-lg px-2 py-1.5 text-xs w-full text-right mt-0.5"
+                      {...register(`items.${idx}.quantity`, { valueAsNumber: true })} />
+                  </div>
+                  <div>
+                    <label className="text-xs text-slate-500">Rate</label>
+                    <input type="number" step="0.01" className="glass-input rounded-lg px-2 py-1.5 text-xs w-full text-right mt-0.5"
+                      {...register(`items.${idx}.rate`, { valueAsNumber: true })} />
+                  </div>
+                  <div>
+                    <label className="text-xs text-slate-500">Disc%</label>
+                    <input type="number" min="0" max="100" className="glass-input rounded-lg px-2 py-1.5 text-xs w-full text-right mt-0.5"
+                      {...register(`items.${idx}.discountPercentage`, { valueAsNumber: true })} />
+                  </div>
+                  {isGst ? (
+                    <div>
+                      <label className="text-xs text-slate-500">CGST%+SGST%</label>
+                      <select className="glass-input rounded-lg px-1 py-1.5 text-xs w-full mt-0.5"
+                        {...register(`items.${idx}.gstRate`, { valueAsNumber: true })}>
+                        {[0,3,5,6,9,12,14,18,28].map(r => <option key={r} value={r}>{r/2}+{r/2}%</option>)}
+                      </select>
+                    </div>
+                  ) : (
+                    <div className="flex items-end justify-center pb-1">
+                      <span className="text-xs text-slate-600">No GST</span>
+                    </div>
+                  )}
+                </div>
+                <div className="flex justify-end mt-2">
+                  <p className="text-sm font-bold text-slate-100">{fmt.currency(calc.totalAmount)}</p>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+
+      {/* Totals */}
+      {fields.length > 0 && (
+        <div className="glass-dark rounded-2xl p-4 space-y-2">
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-slate-400 flex-1">Overall Discount %</span>
+            <input type="number" min="0" max="100" step="0.01"
+              className="glass-input rounded-xl px-3 py-2 text-sm w-20 text-right"
+              {...register('overallDiscount', { valueAsNumber: true })} />
+          </div>
+          <div className="glass-divider" />
+          <div className="space-y-1.5 text-sm">
+            <div className="flex justify-between text-slate-400"><span>Subtotal</span><span>{fmt.currency(totals.subtotal)}</span></div>
+            {totals.overallDiscountAmount > 0 && (
+              <div className="flex justify-between text-rose-400"><span>Discount ({overallDiscount}%)</span><span>-{fmt.currency(totals.overallDiscountAmount)}</span></div>
+            )}
+            {isGst && totals.gstAmount > 0 && (
+              <>
+                <div className="flex justify-between text-slate-400"><span>CGST</span><span>{fmt.currency(totals.gstAmount / 2)}</span></div>
+                <div className="flex justify-between text-slate-400"><span>SGST</span><span>{fmt.currency(totals.gstAmount / 2)}</span></div>
+              </>
+            )}
+            {roundOff !== 0 && <div className="flex justify-between text-slate-500 text-xs"><span>Round Off</span><span>{roundOff > 0 ? '+' : ''}{fmt.currency(roundOff)}</span></div>}
+            <div className="flex justify-between items-center pt-2 border-t border-white/8">
+              <span className="font-display font-bold text-slate-100">Grand Total</span>
+              <span className="text-xl font-display font-black gradient-text">{fmt.currency(grandTotal)}</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {fields.length > 0 && (
+        <div className="grid grid-cols-2 gap-3">
+          <Input label="Paid ₹" type="number" step="0.01" placeholder={String(grandTotal)} {...register('paidAmount', { valueAsNumber: true })} />
+          <Input label="Notes" placeholder="Optional…" {...register('notes')} />
+        </div>
+      )}
+
+      {/* UPI QR in edit form */}
+      {fields.length > 0 && paymentMode === 'UPI' && shopSettings?.upiId && (
+        <div className="glass-dark rounded-2xl p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <QrCode size={15} className="text-brand-400" />
+            <p className="text-sm font-semibold text-slate-300">Scan to Pay via UPI</p>
+          </div>
+          <div className="flex justify-center">
+            <UpiQR upiId={shopSettings.upiId} name={shopSettings.shopName} amount={grandTotal} note="Payment for bill" size={180} />
+          </div>
+          <p className="text-center text-xs text-slate-500 mt-3">
+            Amount: <span className="text-brand-400 font-semibold">{fmt.currency(grandTotal)}</span>
+          </p>
+        </div>
+      )}
+
+      <div className="flex justify-end pt-1">
+        <Button type="submit" loading={loading} disabled={fields.length === 0} size="lg">
+          <Receipt size={16} /><span>Save Changes</span>
+        </Button>
+      </div>
+    </form>
+  )
+}
 function BillView({ bill, shopSettings }) {
   const snap = bill?.customerSnapshot || {}
   return (
@@ -334,7 +610,7 @@ function BillView({ bill, shopSettings }) {
 }
 
 // ── Bill Card (mobile list) ───────────────────────
-function BillCard({ bill, onView, onPdf, onDelete }) {
+function BillCard({ bill, onView, onEdit, onPdf, onDelete }) {
   return (
     <div className="glass rounded-2xl p-4">
       <div className="flex items-start justify-between gap-2 mb-3">
@@ -361,6 +637,7 @@ function BillCard({ bill, onView, onPdf, onDelete }) {
         </div>
         <div className="flex gap-1.5">
           <button className="btn-icon w-8 h-8" onClick={() => onView(bill._id)}><Eye size={13} /></button>
+          <button className="btn-icon w-8 h-8" onClick={() => onEdit(bill._id)}><Pencil size={13} /></button>
           <button className="btn-icon w-8 h-8" onClick={() => onPdf(bill._id)}><FileDown size={13} /></button>
           <button className="btn-icon w-8 h-8 hover:text-rose-400" onClick={() => onDelete(bill._id)}><Trash2 size={13} /></button>
         </div>
@@ -378,6 +655,7 @@ export default function Billing() {
   const [typeFilter, setTypeFilter] = useState('')
   const [showCreate, setShowCreate] = useState(false)
   const [viewId, setViewId]         = useState(null)
+  const [editId, setEditId]         = useState(null)
   const [deleteId, setDeleteId]     = useState(null)
   const isMobile = window.innerWidth < 768
 
@@ -388,9 +666,9 @@ export default function Billing() {
   })
 
   const { data: billDetail } = useQuery({
-    queryKey: ['bill', viewId],
-    queryFn: () => billsAPI.getById(viewId).then(r => r.data.data),
-    enabled: !!viewId,
+    queryKey: ['bill', viewId || editId],
+    queryFn: () => billsAPI.getById(viewId || editId).then(r => r.data.data),
+    enabled: !!(viewId || editId),
   })
 
   const { data: shopSettings } = useQuery({
@@ -401,6 +679,18 @@ export default function Billing() {
   const createMut = useMutation({
     mutationFn: billsAPI.create,
     onSuccess: () => { qc.invalidateQueries(['bills']); qc.invalidateQueries(['products']); qc.invalidateQueries(['dashboard']); setShowCreate(false); toast.success('Bill created!') },
+  })
+
+  const updateMut = useMutation({
+    mutationFn: ({ id, data }) => billsAPI.update(id, data),
+    onSuccess: () => {
+      qc.invalidateQueries(['bills'])
+      qc.invalidateQueries(['bill', editId])
+      qc.invalidateQueries(['dashboard'])
+      setEditId(null)
+      toast.success('Bill updated!')
+    },
+    onError: (err) => toast.error(err?.response?.data?.message || 'Update failed'),
   })
 
   const deleteMut = useMutation({
@@ -479,7 +769,7 @@ export default function Billing() {
             ? [...Array(3)].map((_, i) => <div key={i} className="glass rounded-2xl p-4 space-y-3"><div className="skeleton h-5 w-3/4 rounded" /><div className="skeleton h-4 w-1/2 rounded" /></div>)
             : bills.length === 0
             ? <div className="glass rounded-2xl p-12 text-center"><Receipt size={32} className="mx-auto mb-3 text-slate-700" /><p className="text-slate-500">No bills yet</p></div>
-            : bills.map(b => <BillCard key={b._id} bill={b} onView={setViewId} onPdf={(id) => pdfMut.mutate(id)} onDelete={setDeleteId} />)}
+            : bills.map(b => <BillCard key={b._id} bill={b} onView={setViewId} onEdit={setEditId} onPdf={(id) => pdfMut.mutate(id)} onDelete={setDeleteId} />)}
         </div>
       ) : (
         <div className="table-wrap">
@@ -504,6 +794,7 @@ export default function Billing() {
                     <Td>
                       <div className="flex justify-end gap-1.5">
                         <button className="btn-icon" onClick={() => setViewId(b._id)}><Eye size={13} /></button>
+                        <button className="btn-icon" onClick={() => setEditId(b._id)}><Pencil size={13} /></button>
                         <button className="btn-icon" onClick={() => pdfMut.mutate(b._id)}><FileDown size={13} /></button>
                         <button className="btn-icon hover:text-rose-400" onClick={() => setDeleteId(b._id)}><Trash2 size={13} /></button>
                       </div>
@@ -524,7 +815,7 @@ export default function Billing() {
 
       {/* Create Modal */}
       <Modal open={showCreate} onClose={() => setShowCreate(false)} title="Create New Bill" size="xl">
-        <BillForm onSubmit={createMut.mutate} loading={createMut.isPending} />
+        <BillForm onSubmit={createMut.mutate} loading={createMut.isPending} shopSettings={shopSettings} />
       </Modal>
 
       {/* View Modal */}
@@ -532,12 +823,27 @@ export default function Billing() {
         {billDetail && (
           <>
             <BillView bill={billDetail} shopSettings={shopSettings} />
-            <div className="flex justify-end mt-4 pt-4 border-t border-white/5">
+            <div className="flex justify-between mt-4 pt-4 border-t border-white/5">
+              <Button variant="ghost" size="sm" onClick={() => { setViewId(null); setEditId(billDetail._id) }}>
+                <Pencil size={15} /><span>Edit Bill</span>
+              </Button>
               <Button variant="secondary" size="sm" onClick={() => pdfMut.mutate(viewId)} loading={pdfMut.isPending}>
                 <FileDown size={15} /><span>Download PDF</span>
               </Button>
             </div>
           </>
+        )}
+      </Modal>
+
+      {/* Edit Modal */}
+      <Modal open={!!editId} onClose={() => setEditId(null)} title={billDetail ? `Edit Bill – ${billDetail.billNo}` : 'Loading…'} size="xl">
+        {billDetail && editId && (
+          <EditBillForm
+            bill={billDetail}
+            shopSettings={shopSettings}
+            loading={updateMut.isPending}
+            onSubmit={(data) => updateMut.mutate({ id: editId, data })}
+          />
         )}
       </Modal>
 
