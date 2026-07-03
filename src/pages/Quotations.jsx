@@ -69,7 +69,7 @@ function QuotationForm({ onSubmit, defaultValues, loading }) {
       quantity:           1,
       rate:               0,
       discountPercentage: 0,
-      gstRate:            18,
+      gstRate:            0,
     })
   }
 
@@ -200,10 +200,10 @@ function QuotationForm({ onSubmit, defaultValues, loading }) {
                     {...register(`items.${idx}.discountPercentage`, { valueAsNumber: true })} />
                 </div>
                 <div className="col-span-1">
-                  <select className="glass-input rounded-lg px-1 py-1.5 text-xs w-full"
-                    {...register(`items.${idx}.gstRate`, { valueAsNumber: true })}>
-                    {gstRates.map(r => <option key={r} value={r}>{r}%</option>)}
-                  </select>
+                  <input type="number" min="0" max="100" step="0.5"
+                    className="glass-input rounded-lg px-2 py-1.5 text-xs w-full text-right"
+                    placeholder="0"
+                    {...register(`items.${idx}.gstRate`, { valueAsNumber: true })} />
                 </div>
                 <div className="col-span-2 text-right">
                   <p className="text-sm font-bold text-slate-100">{fmt.currency(calc.totalAmount)}</p>
