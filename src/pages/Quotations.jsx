@@ -4,7 +4,7 @@ import { quotationsAPI, billsAPI } from '../services'
 import { fmt, calcItemAmounts, calcBillTotals, gstRates, paymentModes } from '../lib/utils'
 import {
   Plus, Trash2, FileText, Eye, Copy, FileDown,
-  ArrowRightLeft, Edit2, CheckCircle
+  ArrowRightLeft, Edit2, CheckCircle, PlusCircle
 } from 'lucide-react'
 import { useForm, useFieldArray } from 'react-hook-form'
 import toast from 'react-hot-toast'
@@ -57,6 +57,19 @@ function QuotationForm({ onSubmit, defaultValues, loading }) {
       rate:               p.sellingPrice,
       discountPercentage: 0,
       gstRate:            p.gstRate || 0,
+    })
+  }
+
+  const addManualItem = () => {
+    append({
+      productId:          null,
+      productName:        '',
+      sku:                'MANUAL',
+      unit:               'PCS',
+      quantity:           1,
+      rate:               0,
+      discountPercentage: 0,
+      gstRate:            18,
     })
   }
 
@@ -114,7 +127,20 @@ function QuotationForm({ onSubmit, defaultValues, loading }) {
       {/* Product search */}
       <div>
         <label className="form-label">Add Products *</label>
-        <ProductSearchInput onSelect={addProduct} excludeIds={addedIds} />
+        <div className="flex gap-2">
+          <div className="flex-1">
+            <ProductSearchInput onSelect={addProduct} excludeIds={addedIds} />
+          </div>
+          <button
+            type="button"
+            onClick={addManualItem}
+            className="btn-secondary rounded-xl px-4 py-2.5 text-sm flex items-center gap-2 flex-shrink-0"
+            title="Add manual item"
+          >
+            <PlusCircle size={15} />
+            <span className="hidden sm:inline">Manual</span>
+          </button>
+        </div>
       </div>
 
       {/* Items */}
@@ -125,12 +151,13 @@ function QuotationForm({ onSubmit, defaultValues, loading }) {
             <div className="col-span-1 text-right">Qty</div>
             <div className="col-span-2 text-right">Rate</div>
             <div className="col-span-1 text-right">Disc%</div>
-            <div className="col-span-1 text-right">GST%</div>
+            <div className="col-span-1 text-right">CGST+SGST</div>
             <div className="col-span-2 text-right">Total</div>
             <div className="col-span-1" />
           </div>
 
           {fields.map((field, idx) => {
+            const isManual = watch(`items.${idx}.sku`) === 'MANUAL'
             const calc = calcItemAmounts({
               quantity:           Number(watch(`items.${idx}.quantity`))           || 0,
               rate:               Number(watch(`items.${idx}.rate`))               || 0,
@@ -141,10 +168,21 @@ function QuotationForm({ onSubmit, defaultValues, loading }) {
               <div key={field.id}
                 className="grid grid-cols-12 gap-2 items-center glass-dark rounded-xl p-3">
                 <div className="col-span-4">
-                  <p className="text-xs font-semibold text-slate-200 truncate">
-                    {watch(`items.${idx}.productName`)}
+                  {isManual ? (
+                    <input
+                      type="text"
+                      placeholder="Enter product name *"
+                      className="glass-input rounded-lg px-2 py-1.5 text-xs w-full font-semibold text-slate-200 mb-1"
+                      {...register(`items.${idx}.productName`, { required: 'Product name required' })}
+                    />
+                  ) : (
+                    <p className="text-xs font-semibold text-slate-200 truncate">
+                      {watch(`items.${idx}.productName`)}
+                    </p>
+                  )}
+                  <p className="text-xs text-slate-500">
+                    {isManual ? '✏️ Manual Entry' : watch(`items.${idx}.sku`)}
                   </p>
-                  <p className="text-xs text-slate-500">{watch(`items.${idx}.sku`)}</p>
                 </div>
                 <div className="col-span-1">
                   <input type="number" min="1"
@@ -169,7 +207,7 @@ function QuotationForm({ onSubmit, defaultValues, loading }) {
                 </div>
                 <div className="col-span-2 text-right">
                   <p className="text-sm font-bold text-slate-100">{fmt.currency(calc.totalAmount)}</p>
-                  <p className="text-xs text-slate-500">{fmt.currency(calc.taxableAmount)} + GST</p>
+                  <p className="text-xs text-slate-500">Base: {fmt.currency(calc.taxableAmount)}</p>
                 </div>
                 <div className="col-span-1 flex justify-end">
                   <button type="button"
@@ -208,9 +246,16 @@ function QuotationForm({ onSubmit, defaultValues, loading }) {
                 <span>-{fmt.currency(totals.overallDiscountAmount)}</span>
               </div>
             )}
-            <div className="flex justify-between text-slate-400">
-              <span>GST</span><span>{fmt.currency(totals.gstAmount)}</span>
-            </div>
+            {totals.gstAmount > 0 && (
+              <>
+                <div className="flex justify-between text-slate-400">
+                  <span>CGST</span><span>{fmt.currency(totals.gstAmount / 2)}</span>
+                </div>
+                <div className="flex justify-between text-slate-400">
+                  <span>SGST</span><span>{fmt.currency(totals.gstAmount / 2)}</span>
+                </div>
+              </>
+            )}
             <div className="flex justify-between font-bold text-slate-100 text-lg pt-2 border-t border-white/5">
               <span>Grand Total</span>
               <span className="gradient-text">{fmt.currency(totals.grandTotal)}</span>
@@ -355,14 +400,20 @@ export default function Quotations() {
 
   // ── Helpers ───────────────────────────────────
   const handleCreate = (formData) => {
+    // Validate manual items have names
+    const invalidManual = formData.items.find(i => i.sku === 'MANUAL' && !i.productName?.trim())
+    if (invalidManual) { toast.error('Please enter product name for manual items'); return }
+
     const payload = {
       customerName:    formData.customerName    || undefined,
       customerMobile:  formData.customerMobile  || undefined,
       customerAddress: formData.customerAddress || undefined,
       customerGst:     formData.customerGst     || undefined,
       items: formData.items.map(i => ({
-        productId:          i.productId,
+        productId:          i.productId || undefined,  // undefined for manual
         productName:        i.productName,
+        sku:                i.sku,
+        unit:               i.unit || 'PCS',
         quantity:           Number(i.quantity),
         rate:               Number(i.rate),
         discountPercentage: Number(i.discountPercentage) || 0,
@@ -376,14 +427,20 @@ export default function Quotations() {
   }
 
   const handleUpdate = (formData) => {
+    // Validate manual items have names
+    const invalidManual = formData.items.find(i => i.sku === 'MANUAL' && !i.productName?.trim())
+    if (invalidManual) { toast.error('Please enter product name for manual items'); return }
+
     const payload = {
       customerName:    formData.customerName    || undefined,
       customerMobile:  formData.customerMobile  || undefined,
       customerAddress: formData.customerAddress || undefined,
       customerGst:     formData.customerGst     || undefined,
       items: formData.items.map(i => ({
-        productId:          i.productId,
+        productId:          i.productId || undefined,  // undefined for manual
         productName:        i.productName,
+        sku:                i.sku,
+        unit:               i.unit || 'PCS',
         quantity:           Number(i.quantity),
         rate:               Number(i.rate),
         discountPercentage: Number(i.discountPercentage) || 0,
@@ -632,7 +689,7 @@ export default function Quotations() {
                     <Th className="text-right">Qty</Th>
                     <Th className="text-right">Rate</Th>
                     <Th className="text-right">Disc%</Th>
-                    <Th className="text-right">GST%</Th>
+                    <Th className="text-right">CGST+SGST</Th>
                     <Th className="text-right">Total</Th>
                   </tr>
                 </thead>
@@ -665,9 +722,14 @@ export default function Quotations() {
                 <span>Subtotal</span><span>{fmt.currency(viewItem.subtotal)}</span>
               </div>
               {viewItem.gstAmount > 0 && (
-                <div className="flex justify-between text-slate-400">
-                  <span>GST</span><span>{fmt.currency(viewItem.gstAmount)}</span>
-                </div>
+                <>
+                  <div className="flex justify-between text-slate-400">
+                    <span>CGST</span><span>{fmt.currency(viewItem.gstAmount / 2)}</span>
+                  </div>
+                  <div className="flex justify-between text-slate-400">
+                    <span>SGST</span><span>{fmt.currency(viewItem.gstAmount / 2)}</span>
+                  </div>
+                </>
               )}
               <div className="flex justify-between font-bold text-slate-100 text-base border-t border-white/5 pt-2">
                 <span>Grand Total</span>
