@@ -33,7 +33,7 @@ function BillForm({ onSubmit, loading, shopSettings }) {
   const overallDiscount = Number(watch('overallDiscount') || 0)
   const items           = watch('items') || []
   const isGst           = type === 'GST'
-  const addedIds        = fields.map(f => f.productId)
+  const addedIds        = fields.filter(f => f.productId).map(f => f.productId)  // Only non-manual items
 
   const processedItems = items.map(i => ({
     ...i,
@@ -314,7 +314,7 @@ function EditBillForm({ bill, onSubmit, loading, shopSettings }) {
   const overallDiscount = Number(watch('overallDiscount') || 0)
   const items           = watch('items') || []
   const isGst           = type === 'GST'
-  const addedIds        = fields.map(f => f.productId).filter(Boolean)
+  const addedIds        = fields.filter(f => f.productId).map(f => f.productId)  // Only non-manual items
 
   const processedItems = items.map(i => ({
     ...i,

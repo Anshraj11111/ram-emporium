@@ -44,8 +44,8 @@ function QuotationForm({ onSubmit, defaultValues, loading }) {
   }))
   const totals = calcBillTotals(processedItems, overallDiscount)
 
-  // ids already in items (to prevent duplicates)
-  const addedIds = fields.map(f => f.productId)
+  // ids already in items (to prevent duplicates) — only from product search, not manual
+  const addedIds = fields.filter(f => f.productId).map(f => f.productId)
 
   const addProduct = (p) => {
     append({
