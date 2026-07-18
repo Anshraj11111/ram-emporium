@@ -122,6 +122,7 @@ export const customBillsAPI = {
   list:        (params) => api.get('/custom-bills', { params: clean(params) }),
   getById:     (id)     => api.get(`/custom-bills/${id}`),
   create:      (d)      => api.post('/custom-bills', d),
+  update:      (id, d)  => api.patch(`/custom-bills/${id}`, d),
   delete:      (id)     => api.delete(`/custom-bills/${id}`),
   generatePDF: (id)     => api.post(`/custom-bills/${id}/generate-pdf`),
 }

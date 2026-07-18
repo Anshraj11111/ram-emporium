@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { customBillsAPI } from '../services'
 import { fmt, paymentModes } from '../lib/utils'
-import { Plus, Trash2, Eye, FileDown, Receipt, User, Phone, MapPin, Hash } from 'lucide-react'
+import { Plus, Trash2, Eye, FileDown, Receipt, User, Phone, MapPin, Hash, Pencil } from 'lucide-react'
 import { useForm, useFieldArray } from 'react-hook-form'
 import toast from 'react-hot-toast'
 import Button from '../components/ui/Button'
@@ -34,9 +34,9 @@ function calcItem(item) {
 }
 
 // ── Custom Bill Form ──────────────────────────────
-function CustomBillForm({ onSubmit, loading }) {
+function CustomBillForm({ onSubmit, loading, initialData }) {
   const { register, control, handleSubmit, watch } = useForm({
-    defaultValues: {
+    defaultValues: initialData || {
       paymentMode: 'CASH',
       items: [{ description: '', qty: 1, unit: 'PCS', rate: '', discount: 0, cgst: 0, sgst: 0 }],
     },
@@ -217,11 +217,35 @@ function CustomBillForm({ onSubmit, loading }) {
       {/* Submit */}
       <div className="flex justify-end pt-4 border-t border-white/5 mt-2">
         <Button type="submit" loading={loading} disabled={fields.length === 0} size="lg">
-          <Receipt size={16} /><span>Generate Custom Bill</span>
+          <Receipt size={16} /><span>{initialData ? 'Update Custom Bill' : 'Generate Custom Bill'}</span>
         </Button>
       </div>
     </form>
   )
+}
+
+// ── Edit Custom Bill Form ──────────────────────────
+function EditCustomBillForm({ bill, onSubmit, loading }) {
+  const initialData = {
+    customerName:    bill.customerName    || '',
+    customerMobile:  bill.customerMobile  || '',
+    customerAddress: bill.customerAddress || '',
+    customerGst:     bill.customerGst     || '',
+    paymentMode:     bill.paymentMode     || 'CASH',
+    paidAmount:      bill.paidAmount      || '',
+    notes:           bill.notes           || '',
+    items: bill.items?.map(i => ({
+      description: i.description || '',
+      qty:         i.qty         || 1,
+      unit:        i.unit        || 'PCS',
+      rate:        i.rate        || 0,
+      discount:    i.discount    || 0,
+      cgst:        i.cgst        || 0,
+      sgst:        i.sgst        || 0,
+    })) || [{ description: '', qty: 1, unit: 'PCS', rate: '', discount: 0, cgst: 0, sgst: 0 }],
+  }
+
+  return <CustomBillForm onSubmit={onSubmit} loading={loading} initialData={initialData} />
 }
 
 // ── Bill view modal ───────────────────────────────
@@ -287,6 +311,7 @@ export default function CustomBilling() {
   const [search, setSearch]     = useState('')
   const [page, setPage]         = useState(1)
   const [showCreate, setShowCreate] = useState(false)
+  const [editId, setEditId]         = useState(null)
   const [viewId, setViewId]         = useState(null)
   const [deleteId, setDeleteId]     = useState(null)
   const isMobile = window.innerWidth < 768
@@ -303,9 +328,20 @@ export default function CustomBilling() {
     enabled:  !!viewId,
   })
 
+  const { data: billToEdit } = useQuery({
+    queryKey: ['custom-bill', editId],
+    queryFn:  () => customBillsAPI.getById(editId).then(r => r.data.data),
+    enabled:  !!editId,
+  })
+
   const createMut = useMutation({
     mutationFn: customBillsAPI.create,
     onSuccess:  () => { qc.invalidateQueries(['custom-bills']); setShowCreate(false); toast.success('Custom bill created!') },
+  })
+
+  const updateMut = useMutation({
+    mutationFn: ({ id, data }) => customBillsAPI.update(id, data),
+    onSuccess:  () => { qc.invalidateQueries(['custom-bills']); qc.invalidateQueries(['custom-bill']); setEditId(null); toast.success('Custom bill updated!') },
   })
 
   const deleteMut = useMutation({
@@ -390,6 +426,7 @@ export default function CustomBilling() {
                         : <span className="text-xs text-emerald-400">Paid</span>}
                     </div>
                     <div className="flex gap-1.5">
+                      <button className="btn-icon w-8 h-8" onClick={() => setEditId(b._id)}><Pencil size={13} /></button>
                       <button className="btn-icon w-8 h-8" onClick={() => setViewId(b._id)}><Eye size={13} /></button>
                       <button className="btn-icon w-8 h-8" onClick={() => pdfMut.mutate(b._id)}><FileDown size={13} /></button>
                       <button className="btn-icon w-8 h-8 hover:text-rose-400" onClick={() => setDeleteId(b._id)}><Trash2 size={13} /></button>
@@ -427,6 +464,7 @@ export default function CustomBilling() {
                     <Td><span className="text-slate-500 text-xs">{fmt.date(b.createdAt)}</span></Td>
                     <Td>
                       <div className="flex justify-end gap-1.5">
+                        <button className="btn-icon" onClick={() => setEditId(b._id)}><Pencil size={13} /></button>
                         <button className="btn-icon" onClick={() => setViewId(b._id)}><Eye size={13} /></button>
                         <button className="btn-icon" onClick={() => pdfMut.mutate(b._id)}><FileDown size={13} /></button>
                         <button className="btn-icon hover:text-rose-400" onClick={() => setDeleteId(b._id)}><Trash2 size={13} /></button>
@@ -451,6 +489,18 @@ export default function CustomBilling() {
       {/* Create Modal */}
       <Modal open={showCreate} onClose={() => setShowCreate(false)} title="Create Custom Bill" size="xl">
         <CustomBillForm onSubmit={createMut.mutate} loading={createMut.isPending} />
+      </Modal>
+
+      {/* Edit Modal */}
+      <Modal open={!!editId} onClose={() => setEditId(null)}
+        title={billToEdit ? `Edit Custom Bill – ${billToEdit.billNo}` : 'Loading…'} size="xl">
+        {billToEdit && (
+          <EditCustomBillForm
+            bill={billToEdit}
+            onSubmit={(data) => updateMut.mutate({ id: editId, data })}
+            loading={updateMut.isPending}
+          />
+        )}
       </Modal>
 
       {/* View Modal */}
