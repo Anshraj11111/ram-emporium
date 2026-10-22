@@ -30,12 +30,26 @@ const processQueue = (error, token = null) => {
   failedQueue = []
 }
 
+const clearSession = () => {
+  localStorage.removeItem('accessToken')
+  localStorage.removeItem('refreshToken')
+  // Clear zustand persisted store so login screen shows fresh
+  localStorage.removeItem('ram-auth')
+  window.location.href = '/login'
+}
+
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config
 
     if (error.response?.status === 401 && !originalRequest._retry) {
+      // Don't retry the refresh-token call itself — avoid infinite loop
+      if (originalRequest.url?.includes('/auth/refresh-token')) {
+        clearSession()
+        return Promise.reject(error)
+      }
+
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject })
@@ -52,31 +66,44 @@ api.interceptors.response.use(
 
       const refreshToken = localStorage.getItem('refreshToken')
       if (!refreshToken) {
-        localStorage.clear()
-        window.location.href = '/login'
+        isRefreshing = false
+        clearSession()
         return Promise.reject(error)
       }
 
       try {
         const { data } = await axios.post('/api/v1/auth/refresh-token', { refreshToken })
         const { accessToken, refreshToken: newRefresh } = data.data
+
+        // Persist new tokens
         localStorage.setItem('accessToken', accessToken)
         localStorage.setItem('refreshToken', newRefresh)
+
+        // Sync zustand store so persisted state stays consistent
+        try {
+          const stored = localStorage.getItem('ram-auth')
+          if (stored) {
+            const parsed = JSON.parse(stored)
+            parsed.state.accessToken  = accessToken
+            parsed.state.refreshToken = newRefresh
+            localStorage.setItem('ram-auth', JSON.stringify(parsed))
+          }
+        } catch {}
+
         api.defaults.headers.common.Authorization = `Bearer ${accessToken}`
         processQueue(null, accessToken)
         originalRequest.headers.Authorization = `Bearer ${accessToken}`
         return api(originalRequest)
       } catch (err) {
         processQueue(err, null)
-        localStorage.clear()
-        window.location.href = '/login'
+        clearSession()
         return Promise.reject(err)
       } finally {
         isRefreshing = false
       }
     }
 
-    // Show error toast for server errors
+    // Show error toast for non-401 server errors
     const message = error.response?.data?.error?.message || 'Something went wrong'
     if (error.response?.status !== 401) {
       toast.error(message)
