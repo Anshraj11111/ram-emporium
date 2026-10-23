@@ -678,7 +678,13 @@ export default function Billing() {
 
   const createMut = useMutation({
     mutationFn: billsAPI.create,
-    onSuccess: () => { qc.invalidateQueries(['bills']); qc.invalidateQueries(['products']); qc.invalidateQueries(['dashboard']); setShowCreate(false); toast.success('Bill created!') },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['bills'] })
+      qc.invalidateQueries({ queryKey: ['products'], refetchType: 'all' })  // force refetch so stock qty updates instantly
+      qc.invalidateQueries({ queryKey: ['dashboard'], refetchType: 'all' })
+      setShowCreate(false)
+      toast.success('Bill created!')
+    },
   })
 
   const updateMut = useMutation({

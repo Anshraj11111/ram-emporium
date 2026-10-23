@@ -390,9 +390,10 @@ export default function Quotations() {
   const convertMut = useMutation({
     mutationFn: ({ qId, data }) => billsAPI.convertQuotation(qId, data),
     onSuccess: () => {
-      qc.invalidateQueries(['quotations'])
-      qc.invalidateQueries(['bills'])
-      qc.invalidateQueries(['products'])
+      qc.invalidateQueries({ queryKey: ['quotations'] })
+      qc.invalidateQueries({ queryKey: ['bills'] })
+      qc.invalidateQueries({ queryKey: ['products'], refetchType: 'all' }) // force refetch so stock qty updates instantly
+      qc.invalidateQueries({ queryKey: ['dashboard'], refetchType: 'all' })
       setConvertId(null)
       toast.success('Converted to bill successfully!')
     },
