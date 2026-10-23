@@ -52,6 +52,8 @@ export default function Settings() {
   const { data: settings, isLoading } = useQuery({
     queryKey: ['settings'],
     queryFn: () => settingsAPI.get().then(r => r.data.data),
+    staleTime: 1000 * 60 * 30, // 30 min — settings rarely change
+    gcTime:    1000 * 60 * 60, // keep in cache for 1 hour
   })
 
   const { register, handleSubmit, reset, formState: { errors, isDirty } } = useForm({
