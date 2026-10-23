@@ -18,6 +18,12 @@ const queryClient = new QueryClient({
   },
 })
 
+// ── Keep backend alive (ping every 14 min to prevent cold starts) ──
+const BACKEND_URL = import.meta.env.VITE_API_URL?.replace('/api/v1', '') || 'https://ram-emporium-backend.onrender.com'
+const pingBackend = () => fetch(`${BACKEND_URL}/health`, { method: 'GET' }).catch(() => {})
+pingBackend() // ping on app load
+setInterval(pingBackend, 14 * 60 * 1000) // then every 14 minutes
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
