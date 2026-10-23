@@ -33,7 +33,6 @@ const processQueue = (error, token = null) => {
 const clearSession = () => {
   localStorage.removeItem('accessToken')
   localStorage.removeItem('refreshToken')
-  // Clear zustand persisted store so login screen shows fresh
   localStorage.removeItem('ram-auth')
   window.location.href = '/login'
 }
@@ -43,14 +42,15 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      // Don't retry the refresh-token call itself — avoid infinite loop
-      if (originalRequest.url?.includes('/auth/refresh-token')) {
-        clearSession()
-        return Promise.reject(error)
-      }
+    // Don't retry refresh-token calls — avoids infinite loop
+    if (originalRequest.url?.includes('/auth/refresh-token')) {
+      clearSession()
+      return Promise.reject(error)
+    }
 
+    if (error.response?.status === 401 && !originalRequest._retry) {
       if (isRefreshing) {
+        // Queue this request — wait for the ongoing refresh to complete
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject })
         })
@@ -72,14 +72,14 @@ api.interceptors.response.use(
       }
 
       try {
-        const { data } = await axios.post('/api/v1/auth/refresh-token', { refreshToken })
+        const { data } = await axios.post(`${BASE_URL}/auth/refresh-token`, { refreshToken })
         const { accessToken, refreshToken: newRefresh } = data.data
 
-        // Persist new tokens
+        // Update localStorage
         localStorage.setItem('accessToken', accessToken)
         localStorage.setItem('refreshToken', newRefresh)
 
-        // Sync zustand store so persisted state stays consistent
+        // Sync zustand persisted store
         try {
           const stored = localStorage.getItem('ram-auth')
           if (stored) {
@@ -103,7 +103,7 @@ api.interceptors.response.use(
       }
     }
 
-    // Show error toast for non-401 server errors
+    // Show error toast for non-401 errors
     const message = error.response?.data?.error?.message || 'Something went wrong'
     if (error.response?.status !== 401) {
       toast.error(message)
