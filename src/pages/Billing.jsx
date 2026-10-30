@@ -690,9 +690,10 @@ export default function Billing() {
   const updateMut = useMutation({
     mutationFn: ({ id, data }) => billsAPI.update(id, data),
     onSuccess: () => {
-      qc.invalidateQueries(['bills'])
-      qc.invalidateQueries(['bill', editId])
-      qc.invalidateQueries(['dashboard'])
+      qc.invalidateQueries({ queryKey: ['bills'] })
+      qc.invalidateQueries({ queryKey: ['bill', editId] })
+      qc.invalidateQueries({ queryKey: ['products'], refetchType: 'all' }) // stock qty update instantly
+      qc.invalidateQueries({ queryKey: ['dashboard'], refetchType: 'all' })
       setEditId(null)
       toast.success('Bill updated!')
     },
